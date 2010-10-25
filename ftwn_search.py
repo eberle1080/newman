@@ -182,6 +182,11 @@ def main():
         print "Input: " + before
         print "Output: " + after
 
+        print ""
+
+        for w,c,s in mapped:
+            print " -> " + w + ": " + s.definition
+
     except IndexError:
         print 'Usage: '
 
