@@ -24,13 +24,13 @@ class Word(object):
     Represents a single word, and anything about it
     """
     
-    def __init__(self, word, simple, vocabulary, onlyDefine = False):
+    def __init__(self, word, simple, vocabulary, translations, onlyDefine = False):
         """
         Initialize this beeyatch
         """
-        self._process(word, simple, vocabulary, onlyDefine)
+        self._process(word, simple, vocabulary, translations, onlyDefine)
 
-    def _process(self, word, simple, vocabulary, onlyDefine):
+    def _process(self, word, simple, vocabulary, translations, onlyDefine):
         """
         Reduce a word to something we can more easily process later
         """
@@ -45,8 +45,10 @@ class Word(object):
             raise NonWordException(word)
 
         # Is it a simple word? Something like 'a', 'the', 'an', etc
-        if self._normalized in simple:
+        if self._normalized in simple or self._normalized in translations.keys():
             self._reduced = self._normalized
+            while translations.has_key(self._reduced):
+                self._reduced = translations[self._reduced]
             return
 
         # Damn, looks like we have some work to do
@@ -117,7 +119,10 @@ class Word(object):
 
         if len(candidates) == 0 or candidates[0][0] == None or candidates[0][1] == None:
             raise UnknownWordException(word)
+
         self._reduced = candidates[0][1]
+        while translations.has_key(self._reduced):
+            self._reduced = translations[self._reduced]
 
     def __str__(self):
         return 'Word( "' + self._original + '" -> "' + self._normalized + '" -> "' + self._reduced + '" )'
