@@ -1,194 +1,177 @@
 #!/usr/bin/env python
-################################################################################
-# ftwn_search.py
-# Author: Chris Eberle
-# Date: 10/2/2010
-#
-# FaceTracer+WordNet search interface
-#
-# Run the following just once by hand before you run this program:
-# $ python [ENTER]
-# >>> import nltk [ENTER]
-# >>> nltk.download() [ENTER]
-# Downloader> d [ENTER]
-#  Identifier> brown [ENTER]
-# Downloader> d [ENTER]
-#  Identifier> punkt [ENTER]
-################################################################################
+# Author: Chris Eberle <eberle1080@gmail.com>
 
-#http://honnibal.wordpress.com/
-
-import sys
-import nltk
+import sys, os, getopt
 import pprint
-from nltk.tokenize import sent_tokenize
-from nltk.tokenize import word_tokenize
 
-from nltk.corpus import wordnet as wn
-from nltk.corpus.reader.wordnet import Synset, Lemma
+from word import *
 
-def tokenizeAndTag(text):
+# Lexicon by category
+articles = ['a', 'an', 'the', 'some', 'one', 'this']
+negation = ['no', 'non', 'without']
+conjunctions = ['and', 'with']
 
-    print "Tokenizing..."
-    words = []
-    for i, sentenceStr in enumerate(sent_tokenize(text)):
-        tokens = word_tokenize(sentenceStr)
-        for token in tokens:
-            if token:
-                words.append(token)
+# Build the simple lexicon
+simple = articles + negation + conjunctions
 
-    # Now we normalize them
-    words = [n for n in [w.strip().lower().replace(' ', '_') for w in words]
-             if n != ""]
-    words = [w for w in words if w not in [",", '"', "'", '?', '!']]
+# Supported vocabulary (don't list non-verbs or non-nouns)
+vocabulary = None
 
-    # No words found
-    if len(words) == 0:
-        print "No words found :("
-        sys.exit(1)
+def vocab_lookup(word, key):
+    import nltk
+    from nltk.corpus import wordnet as wn
+    return (word, wn.lemma_from_key(key).synset)
 
-    # Now we tag the words
-    print "Tagging..."
-    tagged = []
-    unknown = False
-    for word in words:
-        pos_forms = {}
-        for pos in (wn.NOUN, wn.VERB, wn.ADJ, wn.ADV):
-            # Find a possible base form for the given form, with the given
-            # part of speech, by checking WordNet's list of exceptional forms,
-            # and by recursively stripping affixes for this part of speech
-            # until a form in WordNet is found.
-
-            form = wn.morphy(word, pos)
-            if form != None:
-                pos_forms[pos] = form
-
-        # Apparently this word is not known
-        if len(pos_forms) == 0:
-            print " ERROR Unknown word:", word
-            unknown = True
-            continue
-
-        # Prefer the noun forms
-        noun = False
-        for t,l in pos_forms.items():
-            if t == 'n':
-                noun = True
-                tagged.append((t, l))
-                break
-        if not noun:
-            for t, l in pos_forms.items():
-                tagged.append((t, l))
-                break
-
-    if unknown:
-        sys.exit(1)
-
-    return tagged
-
-def getCategorySynsets():
+def vocab():
+    """
+    A list of supported root words and their wordnet lemma key.
+    You can invoke the program with "-l WORD" to get a list of
+    keys -> definitions for a given word.
+    """
     cats = []
-    cats.append(('smiling', wn.lemma_from_key('smiling%1:10:00::').synset))
-    cats.append(('asian', wn.lemma_from_key('asian%1:18:00::').synset))
-    cats.append(('white', wn.lemma_from_key('white%1:18:00::').synset))
-    cats.append(('male', wn.lemma_from_key('man%1:18:00::').synset))
-    cats.append(('female', wn.lemma_from_key('woman%1:18:00::').synset))
-    cats.append(('indoor', wn.lemma_from_key('indoor%3:00:00::').synset))
-    cats.append(('outdoor', wn.lemma_from_key('outdoors%1:15:00::').synset))
-    cats.append(('child', wn.lemma_from_key('child%1:18:00::').synset))
-    cats.append(('baby', wn.lemma_from_key('baby%1:18:00::').synset))
+    cats.append(vocab_lookup('smiling', 'smiling%1:10:00::'))
+    cats.append(vocab_lookup('asian', 'asian%1:18:00::'))
+    cats.append(vocab_lookup('male', 'man%1:18:00::'))
+    cats.append(vocab_lookup('white', 'white%1:18:00::'))
+    cats.append(vocab_lookup('female', 'woman%1:18:00::'))
+    cats.append(vocab_lookup('indoor', 'indoor%3:00:00::'))
+    cats.append(vocab_lookup('outdoor', 'outdoors%1:15:00::'))
+    cats.append(vocab_lookup('child', 'child%1:18:00::'))
+    cats.append(vocab_lookup('baby', 'baby%1:18:00::'))
+    cats.append(vocab_lookup('glasses', 'glasses%1:06:00::'))
 
     return cats
 
-def getSynsets(tagged):
-    synsetset = []
+# Debugging
+debugging = False
+def debug(*args):
+    """
+    Print a message to stderr
+    """
+    global debugging
+    if not debugging:
+        return
+    for stmt in args:
+        print >> sys.stderr, stmt,
+    print >> sys.stderr
+    sys.stderr.flush()
 
-    print "Looking up synsets..."
 
-    unknown = False
-    count = 0
+class Search(object):
+    def __init__(self):
+        """
+        """
+        
+    def search(self, phrase):
+        """
+        """
 
-    for (pos, w) in tagged:
-        msyn = []
-        synsets = wn.synsets(w, pos)
-        for synset in synsets:
-            forms = []
-            for lemma in synset.lemmas:
-                name = lemma.name.replace(' ', '_').lower()
-                if name == w:
-                    forms.append(lemma)
-                    #print lemma.key, "=>", lemma.synset.definition
+        global simple, vocabulary
 
-            if len(forms) == 0:
-                print " ERROR Unknown synset for word:", w
-                unknown = True
+        import nltk
+        from nltk.tokenize import sent_tokenize
+        from nltk.tokenize import word_tokenize
 
-            count += 1
-            msyn.append((synset, forms[0].key))
+        debug('Tokenizing...')
+        unknowns = [] # Holds the indices of unknown words
+        words = []
+        for i, sentenceStr in enumerate(sent_tokenize(phrase)):
+            tokens = word_tokenize(sentenceStr)
+            for token in tokens:
+                if token:
+                    try:
+                        words.append((token, Word(token, simple, vocabulary)))
+                    except NonWordException:
+                        debug('Skipping non-word:', token)
+                        words.append((token, None))
+                    except UnknownWordException:
+                        words.append((token, None))
+                        unknowns.append(len(words) - 1)
 
-        synsetset.append((w, pos, msyn))
+        if len(unknowns) > 0:
+            uwords = [words[idx][0] for idx in unknowns]
+            print 'Error: unknown words:', ','.join(uwords)
+            sys.exit(1)
 
-    if unknown:
+        debug("Input:", phrase)
+        debug("Reduced:", ' '.join([w[1].reduced() for w in words if w[1] != None]))
+
+        # We now have a list of words in reduced form, let's parse them
+        
+
+def lookup(word):
+    """
+    Lookup all known definitions and forms for a word
+    """
+
+    global simple, vocabulary
+
+    word = word.strip().lower()
+
+    try:
+        definitions = Word(word, simple, vocabulary, True).definitions()
+    except NonWordException:
+        print 'Error: "' + word + '" is not a word'
+        sys.exit(1)
+    except UnknownWordException:
+        print 'Error: "' + word + '" is not a recognized word'
         sys.exit(1)
 
-    print "Found", count, "synsets"
-    return synsetset
+    keys = definitions.keys()
+    keys.sort()
 
-def processSynsets(synsetset):
-    print "Processing synsets..."
-
-    catSynsets = getCategorySynsets()
-    mapped = []
-    unknown = False
-
-    for word, pos, synsets in synsetset:
-        scores = []
-        for synset, key in synsets:
-            for catname, catsyn in catSynsets:
-                if catsyn.pos != synset.pos:
-                    continue
-                score = wn.lch_similarity(synset, catsyn)
-                scores.append((score, catname, catsyn))
-        scores.sort()
-        scores.reverse()
-
-        if len(scores) == 0 or scores[0][0] == None:
-            print " ERROR Unknown mapping for word:", word
-            unknown = True
-            continue
-
-        best_cat = scores[0][1]
-        best_syn = scores[0][2]
-
-        mapped.append((word, best_cat, best_syn))
-
-    if unknown:
+    if len(keys) == 0:
+        print 'No definitions found :('
         sys.exit(1)
 
-    return mapped
+    for k in keys:
+        print k, '=>', definitions[k]
+
+def usage():
+    print 'Usage: %s OPTIONS' % (os.path.basename(sys.argv[0]))
+    print '    -s SEARCH      Search for a phrase'
+    print '    -l WORD        Use wordnet to lookup a word'
+    print '    -d             Enable debugging'
+    print '    -h             Show this helpful message'
 
 def main():
+    global vocabulary, debugging
+
     try:
-        searchTerms = sys.argv[1]
-        tagged = tokenizeAndTag(searchTerms)
-        sets = getSynsets(tagged)
-        if len(sets) == 0:
-            sys.exit(0)
-        mapped = processSynsets(sets)
+        opts, args = getopt.getopt(sys.argv[1:], 's:l:dh', ['search=', 'lookup=', 'debug', 'help'])
+    except getopt.GetoptError, err:
+        print str(err)
+        usage()
+        sys.exit(1)
 
-        before = ' '.join([w for w,c,s in mapped])
-        after = ' '.join([c for w,c,s, in mapped])
+    searchString = None
+    lookupString = None
+    for o, a in opts:
+        if o in ('-h', '--help'):
+            usage()
+            sys.exit()
+        elif o in ('-s', '--search'):
+            searchString = a.strip()
+        elif o in ('-l', '--lookup'):
+            lookupString = a.strip()
+        elif o in ('-d', '--debug'):
+            debugging = True
+        else:
+            assert False, "unhandled option"
 
-        print "Input: " + before
-        print "Output: " + after
+    if (searchString == None or len(searchString) == 0) and (lookupString == None or len(lookupString) == 0):
+        usage()
+        sys.exit(1)
 
-        print ""
+    debug('Initializing...')
+    vocabulary = vocab()
 
-        for w,c,s in mapped:
-            print " -> " + w + ": " + s.definition
+    if lookupString != None and len(lookupString) > 0:
+        lookup(lookupString)
+        sys.exit()
 
-    except IndexError:
-        print 'Usage: '
+    search = Search()
+    search.search(searchString)
 
 if __name__ == '__main__':
     main()
