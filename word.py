@@ -46,10 +46,11 @@ class Word(object):
 
         # Is it a simple word? Something like 'a', 'the', 'an', etc
         if self._normalized in simple or self._normalized in translations.keys():
-            self._reduced = self._normalized
-            while translations.has_key(self._reduced):
-                self._reduced = translations[self._reduced]
-            return
+            if not onlyDefine:
+                self._reduced = self._normalized
+                while translations.has_key(self._reduced):
+                    self._reduced = translations[self._reduced]
+                return
 
         # Damn, looks like we have some work to do
         self._pos_forms = []

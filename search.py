@@ -7,12 +7,13 @@ from parser import *
 
 # Simple words that don't exist in wordnet that we still need to support
 articles = ['a', 'an', 'the', 'some', 'one', 'this']
+functions = ['of']
 negation = ['no', 'non', 'without']
 conjunctions = ['and', 'with']
 pointless = ['person', 'image']
 
 # Build the simple lexicon
-simple = articles + negation + conjunctions + pointless
+simple = articles + functions + negation + conjunctions + pointless
 
 # Any last minute translations you want go here
 translations = {'visage': 'face', 'face': 'person', 'photo': 'image', 'photograph': 'image', 'picture': 'image'}
@@ -44,16 +45,27 @@ def vocab():
     # all technically a person. If it's TOO generic, put it into
     # the simple list above.
 
-    cats.append(vocab_lookup('smiling', 'smiling%1:10:00::'))
-    cats.append(vocab_lookup('asian', 'asian%1:18:00::'))
-    cats.append(vocab_lookup('male', 'man%1:18:00::'))
-    cats.append(vocab_lookup('white', 'white%1:18:00::'))
-    cats.append(vocab_lookup('female', 'woman%1:18:00::'))
-    cats.append(vocab_lookup('indoor', 'indoor%3:00:00::'))
-    cats.append(vocab_lookup('outdoor', 'outdoors%1:15:00::'))
-    cats.append(vocab_lookup('child', 'child%1:18:00::'))
-    cats.append(vocab_lookup('baby', 'baby%1:18:00::'))
-    cats.append(vocab_lookup('glasses', 'glasses%1:06:00::'))
+    cats.append(vocab_lookup('smiling',      'smiling%1:10:00::'))
+    cats.append(vocab_lookup('asian',        'asian%1:18:00::'))
+    cats.append(vocab_lookup('male',         'man%1:18:00::'))
+    cats.append(vocab_lookup('white',        'white%1:18:00::'))
+    cats.append(vocab_lookup('female',       'woman%1:18:00::'))
+    cats.append(vocab_lookup('girl',         'girl%1:18:02::'))
+    cats.append(vocab_lookup('boy',          'boy%1:18:00::'))
+    cats.append(vocab_lookup('indoor',       'indoor%3:00:00::'))
+    cats.append(vocab_lookup('outdoor',      'outdoors%1:15:00::'))
+    cats.append(vocab_lookup('child',        'child%1:18:00::'))
+    cats.append(vocab_lookup('baby',         'baby%1:18:00::'))
+    cats.append(vocab_lookup('glasses',      'glasses%1:06:00::'))
+    cats.append(vocab_lookup('teenager',     'teenager%1:18:00::'))
+    cats.append(vocab_lookup('adult',        'adult%1:18:00::'))
+    cats.append(vocab_lookup('old',          'old%3:00:02::'))
+    cats.append(vocab_lookup('young',        'young%3:00:00::'))
+    cats.append(vocab_lookup('middle-aged',  'middle-aged%5:00:00:old:02'))
+    cats.append(vocab_lookup('senior',       'senior%5:00:00:old:02'))
+    cats.append(vocab_lookup('mustache',     'mustache%1:08:00::'))
+
+    # TODO: Hair colors, hair words, skin colors (races), sunglasses, lighting words, 
 
     return cats
 

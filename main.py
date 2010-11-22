@@ -27,6 +27,7 @@ def main():
         usage()
         sys.exit(1)
 
+    debugging = False
     searchString = None
     lookupString = None
     for o, a in opts:
