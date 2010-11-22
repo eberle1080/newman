@@ -2,9 +2,8 @@
 # Author: Chris Eberle <eberle1080@gmail.com>
 
 import sys, os, getopt
-import pprint
-
 from word import *
+from parser import *
 
 # Lexicon by category
 articles = ['a', 'an', 'the', 'some', 'one', 'this']
@@ -18,6 +17,10 @@ simple = articles + negation + conjunctions
 vocabulary = None
 
 def vocab_lookup(word, key):
+    """
+    Get the synset for a word given its lemma key
+    """
+
     import nltk
     from nltk.corpus import wordnet as wn
     return (word, wn.lemma_from_key(key).synset)
@@ -28,6 +31,7 @@ def vocab():
     You can invoke the program with "-l WORD" to get a list of
     keys -> definitions for a given word.
     """
+
     cats = []
     cats.append(vocab_lookup('smiling', 'smiling%1:10:00::'))
     cats.append(vocab_lookup('asian', 'asian%1:18:00::'))
@@ -48,6 +52,7 @@ def debug(*args):
     """
     Print a message to stderr
     """
+
     global debugging
     if not debugging:
         return
@@ -56,52 +61,53 @@ def debug(*args):
     print >> sys.stderr
     sys.stderr.flush()
 
+def search(phrase):
+    """
+    The actual search method. Tokenizes a string, simplifies the words, and passes
+    them along to the parser.
+    """
 
-class Search(object):
-    def __init__(self):
-        """
-        """
-        
-    def search(self, phrase):
-        """
-        """
+    global simple, vocabulary
 
-        global simple, vocabulary
+    import nltk
+    from nltk.tokenize import sent_tokenize
+    from nltk.tokenize import word_tokenize
 
-        import nltk
-        from nltk.tokenize import sent_tokenize
-        from nltk.tokenize import word_tokenize
+    debug('Tokenizing...')
+    unknowns = [] # Holds the indices of unknown words
+    words = []
+    for i, sentenceStr in enumerate(sent_tokenize(phrase)):
+        tokens = word_tokenize(sentenceStr)
+        for token in tokens:
+            if token:
+                try:
+                    words.append((token, Word(token, simple, vocabulary)))
+                except NonWordException:
+                    debug('Skipping non-word:', token)
+                    words.append((token, None))
+                except UnknownWordException:
+                    words.append((token, None))
+                    unknowns.append(len(words) - 1)
 
-        debug('Tokenizing...')
-        unknowns = [] # Holds the indices of unknown words
-        words = []
-        for i, sentenceStr in enumerate(sent_tokenize(phrase)):
-            tokens = word_tokenize(sentenceStr)
-            for token in tokens:
-                if token:
-                    try:
-                        words.append((token, Word(token, simple, vocabulary)))
-                    except NonWordException:
-                        debug('Skipping non-word:', token)
-                        words.append((token, None))
-                    except UnknownWordException:
-                        words.append((token, None))
-                        unknowns.append(len(words) - 1)
+    if len(unknowns) > 0:
+        uwords = [words[idx][0] for idx in unknowns]
+        print 'Error: unknown words:', '"' + '", "'.join(uwords) + '"'
+        sys.exit(1)
 
-        if len(unknowns) > 0:
-            uwords = [words[idx][0] for idx in unknowns]
-            print 'Error: unknown words:', ','.join(uwords)
-            sys.exit(1)
+    words = [w[1] for w in words if w[1] != None]
+    debug("Input:", ' '.join([w.original() for w in words]))
+    debug("Reduced:", ' '.join([w.reduced() for w in words]))
 
-        debug("Input:", phrase)
-        debug("Reduced:", ' '.join([w[1].reduced() for w in words if w[1] != None]))
-
-        # We now have a list of words in reduced form, let's parse them
-        
+    # We now have a list of words in reduced form, let's parse them
+    try:
+        results = parse(words)
+    except ParserException, e:
+        print str(e)
+        sys.exit(1)
 
 def lookup(word):
     """
-    Lookup all known definitions and forms for a word
+    Look up all known definitions and forms for a word
     """
 
     global simple, vocabulary
@@ -128,6 +134,10 @@ def lookup(word):
         print k, '=>', definitions[k]
 
 def usage():
+    """
+    Print out the usage for this program
+    """
+
     print 'Usage: %s OPTIONS' % (os.path.basename(sys.argv[0]))
     print '    -s SEARCH      Search for a phrase'
     print '    -l WORD        Use wordnet to lookup a word'
@@ -135,6 +145,10 @@ def usage():
     print '    -h             Show this helpful message'
 
 def main():
+    """
+    The main program method
+    """
+
     global vocabulary, debugging
 
     try:
@@ -170,8 +184,7 @@ def main():
         lookup(lookupString)
         sys.exit()
 
-    search = Search()
-    search.search(searchString)
+    search(searchString)
 
 if __name__ == '__main__':
     main()

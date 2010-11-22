@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# Author: Chris Eberle <eberle1080@gmail.com>
 
 class NonWordException(Exception):
     """
@@ -39,7 +41,7 @@ class Word(object):
         # Normalize the word
         self._original = word
         self._normalized = word.strip().lower().replace(' ', '_')
-        if len(self._normalized) == 0 or self._normalized in [',', '"', "'", '?', '!']:
+        if len(self._normalized) == 0 or self._normalized in [',', '"', "'", '?', '!', '.']:
             raise NonWordException(word)
 
         # Is it a simple word? Something like 'a', 'the', 'an', etc
