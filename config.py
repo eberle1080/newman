@@ -156,7 +156,7 @@ def vocab():
 
     # Accessories
     vocab.append(vocab_lookup('wearing',      None))
-    vocab.append(vocab_lookup('hat',          None))
+    vocab.append(vocab_lookup('hat',          'hat%1:06:00::'))
     vocab.append(vocab_lookup('lipstick',     None))
     vocab.append(vocab_lookup('glasses',      'glasses%1:06:00::'))
     vocab.append(vocab_lookup('sunglasses',   None))
@@ -164,7 +164,9 @@ def vocab():
     #vocab.append(vocab_lookup('eyeglasses',   None))
 
     # Body type               Word            Lemma
-    vocab.append(vocab_lookup('attractive',   None))
+    vocab.append(vocab_lookup('attractive',   'attractive%3:00:01::'))
+    vocab.append(vocab_lookup('unattractive', 'unattractive%3:00:00::'))
+    vocab.append(vocab_lookup('unattractive', 'ugly%3:00:00::'))
     vocab.append(vocab_lookup('chubby',       None))
 
     # Image features          Word            Lemma
@@ -188,6 +190,7 @@ def grammar():
     grammar = []
     grammar.append('S -> NP | NP CONJ NP')
     grammar.append('CONJ -> "and" | "or" | "with" | "but"')
+    
 
     return '\n'.join(grammar)
 
