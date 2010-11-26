@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Author: Chris Eberle <eberle1080@gmail.com>
 
-import sys, os, getopt
+import sys, os, getopt, config
 from search import *
 
 def usage():
@@ -50,12 +50,13 @@ def main():
     if debugging:
         print >> sys.stderr, "Initializing..."
         sys.stderr.flush()
-    vocabulary = vocab()
+    vocabulary = config.vocab()
+    grammar = config.grammar()
 
     if lookupString != None and len(lookupString) > 0:
         lookup(lookupString, vocabulary, debugging)
     else:
-        search(searchString, vocabulary, debugging)
+        search(searchString, vocabulary, grammar, debugging)
 
 if __name__ == '__main__':
     main()

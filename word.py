@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Author: Chris Eberle <eberle1080@gmail.com>
 
 class NonWordException(Exception):
@@ -24,13 +23,13 @@ class Word(object):
     Represents a single word, and anything about it
     """
     
-    def __init__(self, word, simple, vocabulary, translations, onlyDefine = False):
+    def __init__(self, word, vocabulary, onlyDefine = False):
         """
         Initialize this beeyatch
         """
-        self._process(word, simple, vocabulary, translations, onlyDefine)
+        self._process(word, vocabulary, onlyDefine)
 
-    def _process(self, word, simple, vocabulary, translations, onlyDefine):
+    def _process(self, word, vocabulary, onlyDefine):
         """
         Reduce a word to something we can more easily process later
         """
@@ -44,13 +43,12 @@ class Word(object):
         if len(self._normalized) == 0 or self._normalized in [',', '"', "'", '?', '!', '.']:
             raise NonWordException(word)
 
-        # Is it a simple word? Something like 'a', 'the', 'an', etc
-        if self._normalized in simple or self._normalized in translations.keys():
-            if not onlyDefine:
-                self._reduced = self._normalized
-                while translations.has_key(self._reduced):
-                    self._reduced = translations[self._reduced]
-                return
+        # Is it a simple word?
+        if not onlyDefine:
+            for vname, vsynset in vocabulary:
+                if vsynset is None and self._normalized == vname:
+                    self._reduced = vname
+                    return
 
         # Damn, looks like we have some work to do
         self._pos_forms = []
@@ -62,7 +60,7 @@ class Word(object):
             # until a form in WordNet is found.
 
             form = wn.morphy(self._normalized, pos)
-            if form != None:
+            if form is not None:
                 synsets = wn.synsets(form, pos)
                 for synset in synsets:
                     forms = []
@@ -88,6 +86,9 @@ class Word(object):
         # we have a word that is close.
         candidates = []
         for vname, vsynset in vocabulary:
+            if vsynset is None:
+                continue
+
             for synset, key in self._pos_forms:
                 if vsynset.pos != synset.pos:
                     # Don't compare non-nouns to nouns
@@ -110,7 +111,7 @@ class Word(object):
                     # These words have nothing in common
                     continue
 
-                # OK, we're related, so let's find out our distance to eachother
+                # OK, we're related, so let's find out our distance to each other
                 score = wn.path_similarity(synset, vsynset)
                 candidates.append((score, vname))
 
@@ -118,12 +119,10 @@ class Word(object):
         candidates.sort()
         candidates.reverse()
 
-        if len(candidates) == 0 or candidates[0][0] == None or candidates[0][1] == None:
+        if len(candidates) == 0 or candidates[0][0] is None or candidates[0][1] is None:
             raise UnknownWordException(word)
 
         self._reduced = candidates[0][1]
-        while translations.has_key(self._reduced):
-            self._reduced = translations[self._reduced]
 
     def __str__(self):
         return 'Word( "' + self._original + '" -> "' + self._normalized + '" -> "' + self._reduced + '" )'
