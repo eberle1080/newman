@@ -9,13 +9,29 @@ class ParserException(Exception):
     def __str__(self):
         return "Parse error: " + self.reason
 
-def parse(wordlist, grammar):
+def parse(wordlist, grammar, debugging):
     """
     Parse this thang
     """
 
-    #import nltk
-    #from nltk.parse.chart import *
+    import nltk
 
-    for word in wordlist:
-        print ' --> ' + word.reduced()
+    try:
+        gr = nltk.parse_cfg(grammar)
+        parts = [w.reduced() for w in wordlist]
+        #parser = nltk.ChartParser(gr)        
+        parser = nltk.RecursiveDescentParser(gr)
+        if debugging:
+            parser.trace()
+        trees = parser.nbest_parse(parts)
+        ct = 0
+        for tree in trees:
+            print tree
+            ct += 1
+        if ct == 0:
+            raise ParserException('No parse trees found')
+
+    except ValueError, e:
+        raise ParserException(str(e))
+
+    return 0

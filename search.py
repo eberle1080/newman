@@ -28,6 +28,7 @@ def search(phrase, vocabulary, grammar, dbg):
     global debugging
 
     debugging = dbg
+    phrase = phrase.replace('-', ' ') # A little pre-processing
 
     import nltk
     from nltk.tokenize import sent_tokenize
@@ -52,7 +53,7 @@ def search(phrase, vocabulary, grammar, dbg):
     if len(unknowns) > 0:
         uwords = [words[idx][0] for idx in unknowns]
         print 'Error: unknown words:', '"' + '", "'.join(uwords) + '"'
-        sys.exit(1)
+        return 1
 
     words = [w[1] for w in words if w[1] != None]
     debug("Input:", ' '.join([w.original() for w in words]))
@@ -60,12 +61,12 @@ def search(phrase, vocabulary, grammar, dbg):
 
     # We now have a list of words in reduced form, let's parse them
     try:
-        results = parse(words, grammar)
+        results = parse(words, grammar, dbg)
     except ParserException, e:
         print str(e)
-        sys.exit(1)
+        return 1
 
-    sys.exit()
+    return 0
 
 def lookup(word, vocabulary, dbg):
     """
@@ -81,19 +82,19 @@ def lookup(word, vocabulary, dbg):
         definitions = Word(word, vocabulary, True).definitions()
     except NonWordException:
         print 'Error: "' + word + '" is not a word'
-        sys.exit(1)
+        return 1
     except UnknownWordException:
         print 'Error: "' + word + '" is not a recognized word'
-        sys.exit(1)
+        return 1
 
     keys = definitions.keys()
     keys.sort()
 
     if len(keys) == 0:
         print 'No definitions found :('
-        sys.exit(1)
+        return 1
 
     for k in keys:
         print k, '=>', definitions[k]
 
-    sys.exit()
+    return 0

@@ -34,6 +34,14 @@ def vocab():
     # lemma of None.
 
     # Simple words            Word            Lemma
+
+    vocab.append(vocab_lookup('(',            None))
+    vocab.append(vocab_lookup('[',            None))
+    vocab.append(vocab_lookup('{',            None))
+    vocab.append(vocab_lookup('}',            None))
+    vocab.append(vocab_lookup(']',            None))
+    vocab.append(vocab_lookup(')',            None))
+
     vocab.append(vocab_lookup('a',            None))
     vocab.append(vocab_lookup('an',           None))
     vocab.append(vocab_lookup('the',          None))
@@ -44,16 +52,29 @@ def vocab():
     vocab.append(vocab_lookup('no',           None))
     vocab.append(vocab_lookup('non',          None))
     vocab.append(vocab_lookup('not',          None))
+    vocab.append(vocab_lookup('neither',      None))
+    vocab.append(vocab_lookup('nor',          None))
     vocab.append(vocab_lookup('without',      None))
     vocab.append(vocab_lookup('or',           None))
     vocab.append(vocab_lookup('in',           None))
     vocab.append(vocab_lookup('and',          None))
     vocab.append(vocab_lookup('with',         None))
+    vocab.append(vocab_lookup('has',          None))
+    vocab.append(vocab_lookup('his',          None))
+    vocab.append(vocab_lookup('her',          None))
+    vocab.append(vocab_lookup('having',       None))
+    vocab.append(vocab_lookup('is',           None))
     vocab.append(vocab_lookup('person',       None))
+    vocab.append(vocab_lookup('people',       None))
+    vocab.append(vocab_lookup('someone',      None))
+    vocab.append(vocab_lookup('somebody',     None))
+    vocab.append(vocab_lookup('human',        'human%3:01:01::'))
+
+    vocab.append(vocab_lookup('who',          None))
     vocab.append(vocab_lookup('image',        None))
     vocab.append(vocab_lookup('visage',       None))
     vocab.append(vocab_lookup('face',         None))
-    vocab.append(vocab_lookup('photo',        None))
+    vocab.append(vocab_lookup('photo',        'photo%1:06:00::'))
 
     # Colors                  Word            Lemma
     vocab.append(vocab_lookup('black',        'black%1:07:00::'))
@@ -82,6 +103,7 @@ def vocab():
     vocab.append(vocab_lookup('frowning',     None))
     vocab.append(vocab_lookup('narrow',       None))
     vocab.append(vocab_lookup('squinty',      None))
+    vocab.append(vocab_lookup('squinting',    None))
     vocab.append(vocab_lookup('open',         None))
     vocab.append(vocab_lookup('closed',       None))
     vocab.append(vocab_lookup('slightly',     None))
@@ -107,10 +129,13 @@ def vocab():
     vocab.append(vocab_lookup('shiny',        None))
     vocab.append(vocab_lookup('square',       None))
     vocab.append(vocab_lookup('strong',       None))
+    vocab.append(vocab_lookup('angry',        None))
 
     # Genders                 Word            Lemma
     vocab.append(vocab_lookup('male',         'man%1:18:00::'))
+    vocab.append(vocab_lookup('men',          None))
     vocab.append(vocab_lookup('female',       'woman%1:18:00::'))
+    vocab.append(vocab_lookup('women',        None))
     vocab.append(vocab_lookup('girl',         'girl%1:18:02::'))
     vocab.append(vocab_lookup('boy',          'boy%1:18:00::'))
 
@@ -130,6 +155,7 @@ def vocab():
 
     # Hair                    Word            Lemma
     vocab.append(vocab_lookup('bald',         None))
+    vocab.append(vocab_lookup('balding',      None))
     vocab.append(vocab_lookup('bangs',        None))
     vocab.append(vocab_lookup('hair',         None))
     vocab.append(vocab_lookup('receding',     None))
@@ -142,6 +168,7 @@ def vocab():
     vocab.append(vocab_lookup('goatee',       None))
     vocab.append(vocab_lookup('beard',        None))
     vocab.append(vocab_lookup('mustache',     'mustache%1:08:00::'))
+    #vocab.append(vocab_lookup('moustache',    None))
     vocab.append(vocab_lookup('sideburns',    None))
 
     # Race                    Word            Lemma
@@ -153,21 +180,27 @@ def vocab():
     # Place                   Word            Lemma
     vocab.append(vocab_lookup('indoor',       'indoor%3:00:00::'))
     vocab.append(vocab_lookup('outdoor',      'outdoors%1:15:00::'))
+    vocab.append(vocab_lookup('outdoor',      'outside%3:00:04::'))
 
     # Accessories
     vocab.append(vocab_lookup('wearing',      None))
     vocab.append(vocab_lookup('hat',          'hat%1:06:00::'))
     vocab.append(vocab_lookup('lipstick',     None))
     vocab.append(vocab_lookup('glasses',      'glasses%1:06:00::'))
+    vocab.append(vocab_lookup('pair',         None))
+    vocab.append(vocab_lookup('set',          None))
     vocab.append(vocab_lookup('sunglasses',   None))
     #vocab.append(vocab_lookup('eyewear',      None))
     #vocab.append(vocab_lookup('eyeglasses',   None))
 
     # Body type               Word            Lemma
     vocab.append(vocab_lookup('attractive',   'attractive%3:00:01::'))
+    vocab.append(vocab_lookup('attractive',   'hot%5:00:00:sexy:00'))
+    vocab.append(vocab_lookup('attractive',   'sexy%3:00:00::'))
     vocab.append(vocab_lookup('unattractive', 'unattractive%3:00:00::'))
     vocab.append(vocab_lookup('unattractive', 'ugly%3:00:00::'))
     vocab.append(vocab_lookup('chubby',       None))
+    vocab.append(vocab_lookup('skinny',       None))
 
     # Image features          Word            Lemma
     vocab.append(vocab_lookup('focused',      None))
@@ -177,6 +210,7 @@ def vocab():
     vocab.append(vocab_lookup('harsh',        None))
     vocab.append(vocab_lookup('lighting',     None))
     vocab.append(vocab_lookup('posed',        None))
+    vocab.append(vocab_lookup('candid',       None))
     vocab.append(vocab_lookup('natural',      None))
     vocab.append(vocab_lookup('soft',         None))
 
@@ -189,8 +223,24 @@ def grammar():
 
     grammar = []
     grammar.append('S -> NP | NP CONJ NP')
-    grammar.append('CONJ -> "and" | "or" | "with" | "but"')
-    
+    grammar.append('CONJ -> "and" | "or" | "but"')
+    grammar.append('NP -> NEG CP | "neither" CP "nor" CP | CP')
+    grammar.append('NEG -> "no" | "non" | "not" | "without"')
+    grammar.append('CP -> "(" CP ")" | "{" CP "}" | "[" CP "]" | CCP')
+    grammar.append('CCP -> NONPERSONCLASS CCP | PERSONCLASS PERSONHAS NONPERSONCLASS CCP | PERSONCLASS CCP | FCP')
+    grammar.append('FCP -> NONPERSONCLASS | PERSONCLASS PERSONHAS NONPERSONCLASS | PERSONCLASS')
+    grammar.append('PERSONCLASS -> ANON | GENDER | RACE')
+    grammar.append('NONPERSONCLASS -> ITEMS')
+    grammar.append('PERSONHAS -> "having" | "with" | "who" "has" | "he" "has" | "she" "has" | "it" "has"')
+    grammar.append('ANON -> "someone" | "somebody" | "people" | "person" | "a" "person" | "human" | "a" "human" | "an" "human" | "face" | "a" "face" | "photo" | "a" "photo"')
+    grammar.append('SINGULAR -> "a" | "an" | "one" | "this" | "some" | "the"')
+    grammar.append('PLURAL -> "some" | "these"')
+    grammar.append('SET -> "pair" "of" | "pairs" "of" | "set" "of"')
+    grammar.append('GENDER -> CLS_MALE | CLS_FEMALE')
+    grammar.append('CLS_MALE -> SINGULAR "male" | "male" | PLURAL "men" | "men"')
+    grammar.append('CLS_FEMALE -> SINGULAR "female" | "female" | PLURAL "women" | "women"')
+    grammar.append('ITEMS -> GLASSES')
+    grammar.append('GLASSES -> PLURAL CLS_GLASSES | CLS_GLASSES | PLURAL SET CLS_GLASSES | SET CLS_GLASSES | SINGULAR SET CLS_GLASSES')
+    grammar.append('CLS_GLASSES -> "glasses" | "sunglasses"')
 
     return '\n'.join(grammar)
-
