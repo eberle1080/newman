@@ -1,6 +1,6 @@
 # Author: Chris Eberle <eberle1080@gmail.com>
 
-__all__ = ['vocab', 'grammar']
+__all__ = ['vocab', 'grammar', 'lookup_classifier']
 
 def vocab_lookup(word, key):
     """
@@ -222,25 +222,126 @@ def grammar():
     """
 
     grammar = []
-    grammar.append('S -> NP | NP CONJ NP')
-    grammar.append('CONJ -> "and" | "or" | "but"')
-    grammar.append('NP -> NEG CP | "neither" CP "nor" CP | CP')
-    grammar.append('NEG -> "no" | "non" | "not" | "without"')
-    grammar.append('CP -> "(" CP ")" | "{" CP "}" | "[" CP "]" | CCP')
-    grammar.append('CCP -> NONPERSONCLASS CCP | PERSONCLASS PERSONHAS NONPERSONCLASS CCP | PERSONCLASS CCP | FCP')
-    grammar.append('FCP -> NONPERSONCLASS | PERSONCLASS PERSONHAS NONPERSONCLASS | PERSONCLASS')
-    grammar.append('PERSONCLASS -> ANON | GENDER | RACE')
-    grammar.append('NONPERSONCLASS -> ITEMS')
-    grammar.append('PERSONHAS -> "having" | "with" | "who" "has" | "he" "has" | "she" "has" | "it" "has"')
-    grammar.append('ANON -> "someone" | "somebody" | "people" | "person" | "a" "person" | "human" | "a" "human" | "an" "human" | "face" | "a" "face" | "photo" | "a" "photo"')
+
+    # Sentences
+    grammar.append('S -> PART | PART CONJ S')
+    grammar.append('PART -> SEG | NOT SEG | NEITHER SEG NOR SEG')
+    grammar.append('SEG -> DESC | "(" S ")" | "[" S "]" | "{" S "}"')
+    grammar.append('DESC -> NP | VP | NP VP | ADV SENT')
+
+    # Negation and conjugation
+    grammar.append('CONJ -> AND | OR')
+    grammar.append('AND -> "and" | "but" | "with"')
+    grammar.append('OR -> "or"')
+    grammar.append('NOT -> "no" | "not" | "without"')
+    grammar.append('NON -> "non"')
+    grammar.append('NEITHER -> "neither"')
+    grammar.append('NOR -> "nor"')
+    
+    # Nouns
+    grammar.append('NP -> MNP | MNP P MNP')
+    grammar.append('MNP -> DET NOMINAL | NOMINAL | PRONOUN | DET NOMINAL MNP | NOMINAL MNP | PRONOUN MNP')
+    grammar.append('DET -> SINGULAR | PLURAL')
     grammar.append('SINGULAR -> "a" | "an" | "one" | "this" | "some" | "the"')
     grammar.append('PLURAL -> "some" | "these"')
-    grammar.append('SET -> "pair" "of" | "pairs" "of" | "set" "of"')
+    grammar.append('NOMINAL -> NOUN')
+    grammar.append('NOUN -> NON N | N | ADJP N')
+    grammar.append('PRONOUN -> "he" | "she" | "who" | "it" | "they" | "which" | "that"')
+    grammar.append('N -> ANON | GENDER | RACE | PHOTO | ITEMS')
+
+    # Verbs
+    grammar.append('VP -> MVP | MVP VP')
+    grammar.append('MVP -> NON VERB | VERB NP | VERB')
+    grammar.append('VERB -> VB_FACIAL')
+
+    # Adjectives
+    grammar.append('ADJP -> ADJ | ADV ADJP')
+    grammar.append('ADJ -> "big" | "small" | "red"')
+    grammar.append('ADV -> "very" | "really"')
+
+    # Prepositions
+    grammar.append('P -> "in" | "on" | "of"')
+
+    # Noun classifiers
+    grammar.append('ANON -> "someone" | "somebody" | "people" | "person" | "human" | "face" | "anyone" | "anybody"')
+
     grammar.append('GENDER -> CLS_MALE | CLS_FEMALE')
-    grammar.append('CLS_MALE -> SINGULAR "male" | "male" | PLURAL "men" | "men"')
-    grammar.append('CLS_FEMALE -> SINGULAR "female" | "female" | PLURAL "women" | "women"')
+    grammar.append('CLS_MALE -> "male" | "men"')
+    grammar.append('CLS_FEMALE -> "female" | "women"')
+
+    grammar.append('RACE -> BLACK | CLS_WHITE | CLS_ASIAN | INDIAN')
+    grammar.append('BLACK -> CLS_BLACK_HAIR | CLS_BLACK')
+    grammar.append('CLS_BLACK_HAIR -> "black" "hair" | "black" "haired"')
+    grammar.append('CLS_BLACK -> "black"')
+    grammar.append('CLS_WHITE -> "white"')
+    grammar.append('CLS_ASIAN -> "asian"')
+    grammar.append('CLS_INDIAN -> "indian"')
+
+    grammar.append('PHOTO -> PHOTOWORD | PHOTODESC PHOTOWORD | PHOTODESC')
+    grammar.append('PHOTODESC -> PHOTOCLASS | PHOTOCLASS CONJ PHOTODESC')
+    grammar.append('PHOTOWORD -> "photo" | "image"')
+    grammar.append('PHOTOCLASS -> CLS_POSED | CLS_NOT_POSED | CLS_COLOR | CLS_NOT_COLOR')
+    grammar.append('CLS_POSED -> "posed"')
+    grammar.append('CLS_NOT_POSED -> "candid"')
+    grammar.append('CLS_COLOR -> "color"')
+    grammar.append('CLS_NOT_COLOR -> "black" "and" "white"')
+
     grammar.append('ITEMS -> GLASSES')
-    grammar.append('GLASSES -> PLURAL CLS_GLASSES | CLS_GLASSES | PLURAL SET CLS_GLASSES | SET CLS_GLASSES | SINGULAR SET CLS_GLASSES')
-    grammar.append('CLS_GLASSES -> "glasses" | "sunglasses"')
+    grammar.append('SET -> "pair" "of" | "pairs" "of" | "set" "of"')
+    grammar.append('GLASSES -> CLS_GLASSES | SET CLS_GLASSES | SET CLS_SUNGLASSES')
+    grammar.append('CLS_GLASSES -> "glasses"')
+    grammar.append('CLS_SUNGLASSES -> "sunglasses"')
+
+    # Verb classifiers
+    grammar.append('VB_FACIAL -> CLS_SMILING | CLS_FROWNING')
+    grammar.append('CLS_SMILING -> "smiling"')
+    grammar.append('CLS_FROWNING -> "frowning"')
+
+    # Adjective classifiers
+    grammar.append('BODY -> CLS_CHUBBY | CLS_NOT_CHUBBY')
+    grammar.append('CLS_CHUBBY -> "chubby"')
+    grammar.append('CLS_NOT_CHUBBY -> "skinny"')
 
     return '\n'.join(grammar)
+
+def lookup_classifier(cls, negate):
+    if cls == 'CLS_POSED':
+        return ('Posed Photo', -1 if negate else 1)
+    elif cls == 'CLS_NOT_POSED':
+        return ('Posed Photo', 1 if negate else -1)
+    elif cls == 'CLS_COLOR':
+        return ('Color Photo', -1 if negate else 1)
+    elif cls == 'CLS_NOT_COLOR':
+        return ('Color Photo', 1 if negate else -1)
+    elif cls == 'CLS_SMILING':
+        return ('Smiling', -1 if negate else 1)
+    elif cls == 'CLS_FROWNING':
+        return ('Frowning', -1 if negate else 1)
+    elif cls == 'CLS_MALE':
+        return ('Male', -1 if negate else 1)
+    elif cls == 'CLS_FEMALE':
+        return ('Male', 1 if negate else -1)
+    elif cls == 'CLS_CHUBBY':
+        return ('Chubby', -1 if negate else 1)
+    elif cls == 'CLS_NOT_CHUBBY':
+        return ('Chubby', 1 if negate else -1)
+    elif cls == 'CLS_GLASSES':
+        if negate:
+            return ('No Eyewear', 1)
+        else:
+            return ('Eyeglasses', 1)
+
+    elif cls == 'CLS_SUNGLASSES':
+        return ('Sunglasses', -1 if negate else 1)
+    elif cls == 'CLS_ASIAN':
+        return ('Asian', -1 if negate else 1)
+    elif cls == 'CLS_BLACK':
+        return ('Black', -1 if negate else 1)
+    elif cls == 'CLS_WHITE':
+        return ('White', -1 if negate else 1)
+    elif cls == 'CLS_ASIAN':
+        return ('Asian', -1 if negate else 1)
+    elif cls == 'CLS_INDIAN':
+        return ('Indian', -1 if negate else 1)
+
+    return (None, 0)

@@ -23,8 +23,7 @@ def batch(batchFile, vocabulary, grammar, debugging):
         sys.exit(1)
 
     for searchString in searches:
-        if debugging:
-            print >> sys.stderr, "---- " + searchString + " ----"
+        print "---- " + searchString + " ----"
         search(searchString, vocabulary, grammar, debugging)
 
 def usage():
