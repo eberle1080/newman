@@ -224,7 +224,7 @@ def grammar():
     grammar = []
 
     # Sentences
-    grammar.append('S -> PART | PART CONJ S')
+    grammar.append('S -> PART | PART CONJ S | PART S')
     grammar.append('PART -> SEG | NOT SEG | NEITHER SEG NOR SEG')
     grammar.append('SEG -> DESC | "(" S ")" | "[" S "]" | "{" S "}"')
     grammar.append('DESC -> NP | VP | NP VP | ADV SENT')
@@ -247,16 +247,17 @@ def grammar():
     grammar.append('NOMINAL -> NOUN')
     grammar.append('NOUN -> NON N | N | ADJP N')
     grammar.append('PRONOUN -> "he" | "she" | "who" | "it" | "they" | "which" | "that"')
-    grammar.append('N -> ANON | GENDER | RACE | PHOTO | ITEMS')
+    grammar.append('N -> ANON | GENDER | RACE | PHOTO | ITEMS | FACEPARTS | HAIR')
 
     # Verbs
     grammar.append('VP -> MVP | MVP VP')
-    grammar.append('MVP -> NON VERB | VERB NP | VERB')
-    grammar.append('VERB -> VB_FACIAL')
+    grammar.append('MVP -> VERB NP | VERB')
+    grammar.append('VERB ->  V | V ADJP')
+    grammar.append('V -> BE | HAVE | VB_FACIAL')
 
     # Adjectives
     grammar.append('ADJP -> ADJ | ADV ADJP')
-    grammar.append('ADJ -> "big" | "small" | "red"')
+    grammar.append('ADJ -> BODY | MOOD')
     grammar.append('ADV -> "very" | "really"')
 
     # Prepositions
@@ -271,7 +272,6 @@ def grammar():
 
     grammar.append('RACE -> BLACK | CLS_WHITE | CLS_ASIAN | INDIAN')
     grammar.append('BLACK -> CLS_BLACK_HAIR | CLS_BLACK')
-    grammar.append('CLS_BLACK_HAIR -> "black" "hair" | "black" "haired"')
     grammar.append('CLS_BLACK -> "black"')
     grammar.append('CLS_WHITE -> "white"')
     grammar.append('CLS_ASIAN -> "asian"')
@@ -292,8 +292,17 @@ def grammar():
     grammar.append('CLS_GLASSES -> "glasses"')
     grammar.append('CLS_SUNGLASSES -> "sunglasses"')
 
+    grammar.append('FACEPARTS -> CLS_DOUBLECHIN')
+    grammar.append('CLS_DOUBLECHIN -> "double" "chin"')
+
+    grammar.append('HAIR -> CLS_BLACK_HAIR | CLS_CURLY_HAIR')
+    grammar.append('CLS_BLACK_HAIR -> "black" "hair" | "black" "haired"')
+    grammar.append('CLS_CURLY_HAIR -> "curly" "hair" | "curly" "haired"')
+
     # Verb classifiers
     grammar.append('VB_FACIAL -> CLS_SMILING | CLS_FROWNING')
+    grammar.append('BE -> "is" | "am" | "are"')
+    grammar.append('HAVE -> "have" | "has"')
     grammar.append('CLS_SMILING -> "smiling"')
     grammar.append('CLS_FROWNING -> "frowning"')
 
@@ -301,6 +310,8 @@ def grammar():
     grammar.append('BODY -> CLS_CHUBBY | CLS_NOT_CHUBBY')
     grammar.append('CLS_CHUBBY -> "chubby"')
     grammar.append('CLS_NOT_CHUBBY -> "skinny"')
+    grammar.append('MOOD -> CLS_ANGRY')
+    grammar.append('CLS_ANGRY -> "angry"')
 
     return '\n'.join(grammar)
 
@@ -343,5 +354,13 @@ def lookup_classifier(cls, negate):
         return ('Asian', -1 if negate else 1)
     elif cls == 'CLS_INDIAN':
         return ('Indian', -1 if negate else 1)
+    elif cls == 'CLS_DOUBLECHIN':
+        return ('Double Chin', -1 if negate else 1)
+    elif cls == 'CLS_ANGRY':
+        return ('Arched Eyebrows', -1 if negate else 1)
+    elif cls == 'CLS_BLACK_HAIR':
+        return ('Black Hair', -1 if negate else 1)
+    elif cls == 'CLS_CURLY_HAIR':
+        return ('Curly Hair', -1 if negate else 1)
 
     return (None, 0)

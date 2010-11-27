@@ -73,6 +73,7 @@ def rparse(tree, classifiers, negate, depth = 0):
                     raise ParserException('Unknown grammar classifier: ' + name)
                 classifiers.add(classifier[0], classifier[1])
                 classifiers.addtext(tr)
+                return None
             elif name in ('NOT', 'NON', 'NEITHER'):
                 classifiers.addtext(tr)
                 return True
@@ -83,8 +84,6 @@ def rparse(tree, classifiers, negate, depth = 0):
                 classifiers.next()
             else:
                 classifiers.addtext(tr)
-
-        #print '-' * depth + '> ' + str(myneg)
 
 def parse(wordlist, grammar, debugging):
     """
@@ -101,10 +100,11 @@ def parse(wordlist, grammar, debugging):
         #if debugging:
         #    parser.trace()
 
-        if debugging:
-            parser = nltk.BottomUpChartParser(gr, trace = 2)
-        else:
-            parser = nltk.BottomUpChartParser(gr)
+        #if debugging:
+        #    parser = nltk.BottomUpChartParser(gr, trace = 2)
+        #else:
+        parser = nltk.BottomUpChartParser(gr)
+
         trees = parser.nbest_parse(parts)
 
         classifiers = ClassifierCollection()
