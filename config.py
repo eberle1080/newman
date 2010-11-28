@@ -1,6 +1,6 @@
 # Author: Chris Eberle <eberle1080@gmail.com>
 
-__all__ = ['vocab', 'grammar', 'lookup_classifier']
+__all__ = ['vocab', 'grammar', 'parse']
 
 def vocab_lookup(word, key):
     """
@@ -71,6 +71,7 @@ def vocab():
     vocab.append(vocab_lookup('human',        'human%3:01:01::'))
 
     vocab.append(vocab_lookup('who',          None))
+    vocab.append(vocab_lookup('which',        None))
     vocab.append(vocab_lookup('image',        None))
     vocab.append(vocab_lookup('visage',       None))
     vocab.append(vocab_lookup('face',         None))
@@ -221,146 +222,138 @@ def grammar():
     This is where we define our grammar
     """
 
-    grammar = []
+    grammar = []    
 
     # Sentences
-    grammar.append('S -> PART | PART CONJ S | PART S')
-    grammar.append('PART -> SEG | NOT SEG | NEITHER SEG NOR SEG')
+    grammar.append('S -> PART | S CONJ S | PART S')
+    grammar.append('PART -> SEG | NOT SEG | NEITHER SEG NOR SEG | BOTH SEG LAND SEG')
     grammar.append('SEG -> DESC | "(" S ")" | "[" S "]" | "{" S "}"')
-    grammar.append('DESC -> NP | VP | NP VP | ADV SENT')
+    grammar.append('DESC -> COREWORD | DROPWORD')
 
     # Negation and conjugation
     grammar.append('CONJ -> AND | OR')
-    grammar.append('AND -> "and" | "but" | "with"')
+    grammar.append('AND -> LAND | "but" | "with" | "holding" | "wearing"  | "has" | "had"' +
+                   ' | "having" | "containing"')
+    grammar.append('LAND -> "and"')
     grammar.append('OR -> "or"')
-    grammar.append('NOT -> "no" | "not" | "without"')
+    grammar.append('NOT -> "no" | "not" | "without" | "missing" | "lacking"')
     grammar.append('NON -> "non"')
+    grammar.append('BOTH -> "both"')
     grammar.append('NEITHER -> "neither"')
     grammar.append('NOR -> "nor"')
-    
-    # Nouns
-    grammar.append('NP -> MNP | MNP P MNP')
-    grammar.append('MNP -> DET NOMINAL | NOMINAL | PRONOUN | DET NOMINAL MNP | NOMINAL MNP | PRONOUN MNP')
-    grammar.append('DET -> SINGULAR | PLURAL')
-    grammar.append('SINGULAR -> "a" | "an" | "one" | "this" | "some" | "the"')
-    grammar.append('PLURAL -> "some" | "these"')
-    grammar.append('NOMINAL -> NOUN')
-    grammar.append('NOUN -> NON N | N | ADJP N')
+
+    # Drop words
+    grammar.append('DROPWORD -> DET | PRONOUN | ADV | PREP | DVERB | ANON | SET')
+    grammar.append('ANON -> "someone" | "somebody" | "people" | "person" | "human"' +
+                   ' | "face" | "anyone" | "anybody"')
+    grammar.append('DET -> "a" | "an" | "one" | "this" | "some" | "the" | "these"')
+    grammar.append('PREP -> "in" | "on" | "of"')
     grammar.append('PRONOUN -> "he" | "she" | "who" | "it" | "they" | "which" | "that"')
-    grammar.append('N -> ANON | GENDER | RACE | PHOTO | ITEMS | FACEPARTS | HAIR')
-
-    # Verbs
-    grammar.append('VP -> MVP | MVP VP')
-    grammar.append('MVP -> VERB NP | VERB')
-    grammar.append('VERB ->  V | V ADJP')
-    grammar.append('V -> BE | HAVE | VB_FACIAL')
-
-    # Adjectives
-    grammar.append('ADJP -> ADJ | ADV ADJP')
-    grammar.append('ADJ -> BODY | MOOD')
-    grammar.append('ADV -> "very" | "really"')
-
-    # Prepositions
-    grammar.append('P -> "in" | "on" | "of"')
-
-    # Noun classifiers
-    grammar.append('ANON -> "someone" | "somebody" | "people" | "person" | "human" | "face" | "anyone" | "anybody"')
-
-    grammar.append('GENDER -> CLS_MALE | CLS_FEMALE')
-    grammar.append('CLS_MALE -> "male" | "men"')
-    grammar.append('CLS_FEMALE -> "female" | "women"')
-
-    grammar.append('RACE -> BLACK | CLS_WHITE | CLS_ASIAN | INDIAN')
-    grammar.append('BLACK -> CLS_BLACK_HAIR | CLS_BLACK')
-    grammar.append('CLS_BLACK -> "black"')
-    grammar.append('CLS_WHITE -> "white"')
-    grammar.append('CLS_ASIAN -> "asian"')
-    grammar.append('CLS_INDIAN -> "indian"')
-
-    grammar.append('PHOTO -> PHOTOWORD | PHOTODESC PHOTOWORD | PHOTODESC')
-    grammar.append('PHOTODESC -> PHOTOCLASS | PHOTOCLASS CONJ PHOTODESC')
-    grammar.append('PHOTOWORD -> "photo" | "image"')
-    grammar.append('PHOTOCLASS -> CLS_POSED | CLS_NOT_POSED | CLS_COLOR | CLS_NOT_COLOR')
-    grammar.append('CLS_POSED -> "posed"')
-    grammar.append('CLS_NOT_POSED -> "candid"')
-    grammar.append('CLS_COLOR -> "color"')
-    grammar.append('CLS_NOT_COLOR -> "black" "and" "white"')
-
-    grammar.append('ITEMS -> GLASSES')
+    grammar.append('DVERB -> "is" | "was" | "be" | "been" | "being"')
+    grammar.append('ADV -> "very" | "really" | "quite" | "understandably" | "noticibly"' +
+                   ' | "obviously" | "irritatingly" | "exactly" | "barely"')
     grammar.append('SET -> "pair" "of" | "pairs" "of" | "set" "of"')
-    grammar.append('GLASSES -> CLS_GLASSES | SET CLS_GLASSES | SET CLS_SUNGLASSES')
-    grammar.append('CLS_GLASSES -> "glasses"')
-    grammar.append('CLS_SUNGLASSES -> "sunglasses"')
+    
+    # Core words
+    grammar.append('COREWORD -> GENDER | RACE | ATTRACTIVE | COLOR | HAIR | PHOTO | ITEMS | FACE')
 
-    grammar.append('FACEPARTS -> CLS_DOUBLECHIN')
-    grammar.append('CLS_DOUBLECHIN -> "double" "chin"')
+    # Gender
+    grammar.append('GENDER -> PROD_MALE | PROD_FEMALE | PROD_BOY | PROD_GIRL')
+    grammar.append('PROD_BOY -> "boy" | "boys"')
+    grammar.append('PROD_GIRL -> "girl" | "girls"')
+    grammar.append('PROD_MALE -> "male" | "men"')
+    grammar.append('PROD_FEMALE -> "female" | "women"')
 
-    grammar.append('HAIR -> CLS_BLACK_HAIR | CLS_CURLY_HAIR')
-    grammar.append('CLS_BLACK_HAIR -> "black" "hair" | "black" "haired"')
-    grammar.append('CLS_CURLY_HAIR -> "curly" "hair" | "curly" "haired"')
+    # Color / race / hair
+    grammar.append('COLOR -> PROD_BLACK | PROD_WHITE | PROD_GRAY | PROD_BLONDE | PROD_BROWN')
+    grammar.append('PROD_BLACK -> "black"')
+    grammar.append('PROD_WHITE -> "white"')
+    grammar.append('PROD_GRAY -> "gray" | "grey"')
+    grammar.append('PROD_BLONDE -> "blond" | "blonde" | "yellow"')
+    grammar.append('PROD_BROWN -> "brown" | "dark"')
 
-    # Verb classifiers
-    grammar.append('VB_FACIAL -> CLS_SMILING | CLS_FROWNING')
-    grammar.append('BE -> "is" | "am" | "are"')
-    grammar.append('HAVE -> "have" | "has"')
-    grammar.append('CLS_SMILING -> "smiling"')
-    grammar.append('CLS_FROWNING -> "frowning"')
+    # Race
+    grammar.append('RACE -> PROD_ASIAN | PROD_INDIAN')
+    grammar.append('PROD_ASIAN -> "asian"')
+    grammar.append('PROD_INDIAN -> "indian"')
 
-    # Adjective classifiers
-    grammar.append('BODY -> CLS_CHUBBY | CLS_NOT_CHUBBY')
-    grammar.append('CLS_CHUBBY -> "chubby"')
-    grammar.append('CLS_NOT_CHUBBY -> "skinny"')
-    grammar.append('MOOD -> CLS_ANGRY')
-    grammar.append('CLS_ANGRY -> "angry"')
+    # Hair
+    grammar.append('HAIR -> PROD_CURLY | PROD_STRAIGHT | PROD_WAVY | PROD_HAIR | PROD_BALDING | PROD_BALD')
+    grammar.append('PROD_CURLY -> "curly"')
+    grammar.append('PROD_STRAIGHT -> "straight"')
+    grammar.append('PROD_WAVY -> "wavy"')
+    grammar.append('PROD_HAIR -> "hair" | "hairline" | "haired"')
+    grammar.append('PROD_BALD -> "bald"')
+    grammar.append('PROD_BALDING -> "balding" | "receding"')
+
+    # Photo types
+    grammar.append('PHOTO -> PROD_PHOTO | PHOTOTYPE')
+    grammar.append('PHOTOTYPE -> PROD_POSED | PROD_NOT_POSED | PROD_COLOR | PROD_NOT_COLOR')
+    grammar.append('PROD_PHOTO -> "photo" | "image"')
+    grammar.append('PROD_POSED -> "posed"')
+    grammar.append('PROD_NOT_POSED -> "candid" | "surprise" | "surprised"')
+    grammar.append('PROD_COLOR -> "color" | "colored"')
+    grammar.append('PROD_NOT_COLOR -> "black" "and" "white"')
+
+    # Items (hats, etc)
+    grammar.append('ITEMS -> GLASSES')
+    grammar.append('GLASSES -> PROD_GLASSES | PROD_SUNGLASSES')
+    grammar.append('PROD_GLASSES -> "glasses"')
+    grammar.append('PROD_SUNGLASSES -> "sunglasses"')
+    
+    # Facial features
+    grammar.append('FACE -> PROD_SMILING | PROD_FROWNING | PROD_DOUBLECHIN | PROD_CHUBBY' +
+                   ' | PROD_NOT_CHUBBY | PROD_ANGRY')
+    grammar.append('PROD_SMILING -> "smiling"')
+    grammar.append('PROD_FROWNING -> "frowning"')
+    grammar.append('PROD_DOUBLECHIN -> "double" "chin"')
+    grammar.append('PROD_CHUBBY -> "chubby"')
+    grammar.append('PROD_NOT_CHUBBY -> "skinny"')
+    grammar.append('PROD_ANGRY -> "angry"')
 
     return '\n'.join(grammar)
 
-def lookup_classifier(cls, negate):
-    if cls == 'CLS_POSED':
-        return ('Posed Photo', -1 if negate else 1)
-    elif cls == 'CLS_NOT_POSED':
-        return ('Posed Photo', 1 if negate else -1)
-    elif cls == 'CLS_COLOR':
-        return ('Color Photo', -1 if negate else 1)
-    elif cls == 'CLS_NOT_COLOR':
-        return ('Color Photo', 1 if negate else -1)
-    elif cls == 'CLS_SMILING':
-        return ('Smiling', -1 if negate else 1)
-    elif cls == 'CLS_FROWNING':
-        return ('Frowning', -1 if negate else 1)
-    elif cls == 'CLS_MALE':
-        return ('Male', -1 if negate else 1)
-    elif cls == 'CLS_FEMALE':
-        return ('Male', 1 if negate else -1)
-    elif cls == 'CLS_CHUBBY':
-        return ('Chubby', -1 if negate else 1)
-    elif cls == 'CLS_NOT_CHUBBY':
-        return ('Chubby', 1 if negate else -1)
-    elif cls == 'CLS_GLASSES':
-        if negate:
-            return ('No Eyewear', 1)
-        else:
-            return ('Eyeglasses', 1)
+def negToScore(negate):
+    if negate:
+        return -1
+    else:
+        return 1
 
-    elif cls == 'CLS_SUNGLASSES':
-        return ('Sunglasses', -1 if negate else 1)
-    elif cls == 'CLS_ASIAN':
-        return ('Asian', -1 if negate else 1)
-    elif cls == 'CLS_BLACK':
-        return ('Black', -1 if negate else 1)
-    elif cls == 'CLS_WHITE':
-        return ('White', -1 if negate else 1)
-    elif cls == 'CLS_ASIAN':
-        return ('Asian', -1 if negate else 1)
-    elif cls == 'CLS_INDIAN':
-        return ('Indian', -1 if negate else 1)
-    elif cls == 'CLS_DOUBLECHIN':
-        return ('Double Chin', -1 if negate else 1)
-    elif cls == 'CLS_ANGRY':
-        return ('Arched Eyebrows', -1 if negate else 1)
-    elif cls == 'CLS_BLACK_HAIR':
-        return ('Black Hair', -1 if negate else 1)
-    elif cls == 'CLS_CURLY_HAIR':
-        return ('Curly Hair', -1 if negate else 1)
+def dnegToScore(negate):
+    if negate:
+        return 1
+    else:
+        return -1
 
-    return (None, 0)
+def parse1(productions, force):
+    name = productions[0][0]
+    neg = productions[0][1]
+    if name == 'PROD_SMILING':
+        return (('Smiling', negToScore(neg)))
+    elif name == 'PROD_ASIAN':
+        return (('Asian', negToScore(neg)))
+    elif name == 'PROD_GLASSES':
+        if neg:
+            return (('No Eyewear', 1))
+        return (('Eyeglasses', 1))
+    elif name == 'PROD_SUNGLASSES':
+        if neg:
+            return (('No Eyewear', 1))
+        return (('Sunglasses', 1))
+    elif name == 'PROD_MALE':
+        return (('Male', negToScore(neg)))
+    elif name == 'PROD_FEMALE':
+        return (('Female', dnegToScore(neg)))
+    elif name == 'PROD_BOY':
+        return ( ('Male', negToScore(neg)), ('Child', negToScore(neg)) )
+    elif name == 'PROD_GIRL':
+        return ( ('Male', dnegToScore(neg)), ('Child', dnegToScore(neg)) )
+
+    return None
+
+def parse(productions, force):
+    print 'Considering production: ' + str(productions)
+    if len(productions) == 1:
+        return parse1(productions, force)
+    return None
+

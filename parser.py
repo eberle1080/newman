@@ -13,6 +13,7 @@ class ClassifierCollection(object):
     def __init__(self):
         self._classifiers = []
         self._classifiers.append([])
+        self._final = []
         self._pos = 0
         self._valid = 0
         self._text = []
@@ -20,8 +21,8 @@ class ClassifierCollection(object):
     def addtext(self, text):
         self._text.append(text)
 
-    def add(self, classifier, score):
-        self._classifiers[self._pos].append((classifier, score))
+    def add(self, classifier, negate):
+        self._classifiers[self._pos].append((classifier, negate))
 
     def next(self):
         if len(self._classifiers[self._pos]) == 0:
@@ -38,8 +39,10 @@ class ClassifierCollection(object):
             self._valid += 1
             self._text = []
 
-        if len(self._classifiers) == 0:
+        if len(self._classifiers) == 0 or self._valid == 0:
             raise ParserException('No classifier words found')
+
+        self._convert_all()
 
     def valid_count(self):
         return self._valid
@@ -47,8 +50,65 @@ class ClassifierCollection(object):
     def pprint(self):
         classifiers = []
         for n in xrange(self._valid):
-            classifiers.append(', '.join([name + ' => ' + str(score) for (name, score) in self._classifiers[n]]))
+            classifiers.append(', '.join([name + ' => ' + str(negate) for (name, negate) in self._final[n]]))
         print '(' + ') | ('.join(classifiers) + ')'
+
+    def _gauntlet(self, cls, force):
+        import config
+
+        size = len(cls)
+        while size >= 1:
+            end = len(cls) - size + 1
+            for n in range(0, end):
+                ret = config.parse(cls[n:size], True if (size <= 1 or force) else False)
+                if ret != None:
+                    del cls[n:size]
+                    return ret
+            size -= 1
+        return None
+
+    def _extract(self, ret, arr):
+        if ret == None:
+            return 0
+        if isinstance(ret, (list, tuple)):
+            if len(ret) == 0:
+                return 0
+            if isinstance(ret[0], (list, tuple)):
+                num = 0
+                for item in ret:
+                    num += self._extract(item, arr)
+                return
+            if len(ret) < 2:
+                return 0
+            arr.append((ret[0], ret[1]))
+            return 1
+        return 0
+
+    def _convert(self, n):
+        arr = self._final[n]
+        cls = self._classifiers[n]
+
+        while True:
+            ret = self._gauntlet(cls, False)
+            if ret == None:
+                if len(cls) > 0:
+                    ret = self._gauntlet(cls, True)
+                    if ret != None:
+                        self._extract(ret, arr)
+                        continue
+                    raise ParserException('Unable to meaningfully parse the production symbols')
+                else:
+                    return
+            else:
+                self._extract(ret, arr)
+
+    def _convert_all(self):
+        self._final = []
+        if self._valid <= 0:
+            return
+        for n in xrange(self._valid):
+            self._final.append([])
+            self._convert(n)
 
 def rparse(tree, classifiers, negate, depth = 0):
     import nltk, config
@@ -56,6 +116,7 @@ def rparse(tree, classifiers, negate, depth = 0):
     myneg = negate
     lastneg = myneg
 
+    rv = None
     for tr in tree:
         if isinstance(tr, nltk.Tree):
             val = rparse(tr, classifiers, myneg, depth + 1)
@@ -66,24 +127,25 @@ def rparse(tree, classifiers, negate, depth = 0):
                 myneg = lastneg
         elif isinstance(tr, basestring):
             name = str(tree.node)
-            if name.startswith('CLS_'):
+            if name.startswith('PROD_'):
                 # Cheap dirty hack so that I know it's a real classifier
-                classifier = config.lookup_classifier(name, myneg)
-                if(classifier[0] == None):
-                    raise ParserException('Unknown grammar classifier: ' + name)
-                classifiers.add(classifier[0], classifier[1])
+                classifiers.add(name, myneg)
                 classifiers.addtext(tr)
-                return None
+                rv = None
             elif name in ('NOT', 'NON', 'NEITHER'):
                 classifiers.addtext(tr)
-                return True
+                myneg = not negate
+                rv = True
             elif name == 'NOR':
                 classifiers.addtext(tr)
-                return True
+                myneg = not negate
+                rv = True
             elif name == 'OR':
                 classifiers.next()
             else:
                 classifiers.addtext(tr)
+
+    return rv
 
 def parse(wordlist, grammar, debugging):
     """
@@ -115,7 +177,6 @@ def parse(wordlist, grammar, debugging):
         classifiers.finish()
         if classifiers.valid_count() == 0:
             raise ParserException('No parse trees found')
-
         classifiers.pprint()
 
     except ValueError, e:
