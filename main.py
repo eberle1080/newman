@@ -3,8 +3,9 @@
 
 import sys, os, getopt, config
 from search import *
+from debug import *
 
-def batch(batchFile, vocabulary, grammar, debugging):
+def batch(batchFile, vocabulary, grammar):
     """
     Run a batch search
     """
@@ -23,8 +24,10 @@ def batch(batchFile, vocabulary, grammar, debugging):
         sys.exit(1)
 
     for searchString in searches:
-        print "---- " + searchString + " ----"
-        search(searchString, vocabulary, grammar, debugging)
+        print '-'*80
+        print searchString.center(80)
+        print '-'* 80
+        search(searchString, vocabulary, grammar)
 
 def usage():
     """
@@ -50,7 +53,6 @@ def main():
         usage()
         sys.exit(1)
 
-    debugging = False
     searchString = None
     batchFile = None
     lookupString = None
@@ -66,7 +68,7 @@ def main():
         elif o in ('-l', '--lookup'):
             lookupString = a.strip()
         elif o in ('-d', '--debug'):
-            debugging = True
+            set_debug(True)
         else:
             assert False, "unhandled option"
 
@@ -75,18 +77,15 @@ def main():
         usage()
         sys.exit(1)
 
-    if debugging:
-        print >> sys.stderr, "Initializing..."
-        sys.stderr.flush()
-    vocabulary = config.vocab()
-    grammar = config.grammar()
+    debug('Initializing...')
+    vocabulary, grammar = config.configure()
 
     if lookupString != None and len(lookupString) > 0:
-        sys.exit(lookup(lookupString, vocabulary, debugging))
+        sys.exit(lookup(lookupString, vocabulary))
     elif batchFile != None and len(batchFile) > 0:
-        batch(batchFile, vocabulary, grammar, debugging)
+        batch(batchFile, vocabulary, grammar)
     else:
-        sys.exit(search(searchString, vocabulary, grammar, debugging))
+        sys.exit(search(searchString, vocabulary, grammar))
 
 if __name__ == '__main__':
     main()

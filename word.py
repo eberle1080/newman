@@ -127,6 +127,7 @@ class BaseWord(object):
 
         import re
         word = word.strip().lower()
+
         if word == self.word:
             return True
         for alias in self.aliases:
@@ -155,7 +156,7 @@ class Word(object):
 
         # Normalize the word
         self._original = word
-        self._normalized = word.strip().lower().replace(' ', '_')
+        self._normalized = word.strip().lower()
         self._reduced = None
         if len(self._normalized) == 0 or self._normalized in [',', '"', "'", '?', '!', '.']:
             raise NonWordException(word)

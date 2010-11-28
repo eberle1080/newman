@@ -152,7 +152,7 @@ def rparse(tree, classifiers, negate, depth = 0):
 
     return rv
 
-def parse(wordlist, grammar, debugging):
+def parse(wordlist, grammar):
     """
     Parse this thang
     """
@@ -163,25 +163,24 @@ def parse(wordlist, grammar, debugging):
         gr = nltk.parse_cfg(grammar)
         parts = [w.reduced() for w in wordlist]
 
-        #parser = nltk.RecursiveDescentParser(gr)
         #if debugging:
-        #    parser.trace()
-
-        #if debugging:
-        #    parser = nltk.BottomUpChartParser(gr, trace = 2)
+        #parser = nltk.BottomUpChartParser(gr, trace = 2)
         #else:
         parser = nltk.BottomUpChartParser(gr)
 
         trees = parser.nbest_parse(parts)
 
         classifiers = ClassifierCollection()
+        ct = 0
         for tree in trees:
             rparse(tree, classifiers, False)
+            ct += 1
             break
 
-        classifiers.finish()
-        if classifiers.valid_count() == 0:
+        if ct == 0:
             raise ParserException('No parse trees found')
+
+        classifiers.finish()
         classifiers.pprint()
 
     except ValueError, e:

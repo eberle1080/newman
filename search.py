@@ -3,21 +3,7 @@
 import sys, os, getopt
 from word import *
 from parser import *
-
-# Debugging
-debugging = False
-def debug(*args):
-    """
-    Print a message to stderr
-    """
-
-    global debugging
-    if not debugging:
-        return
-    for stmt in args:
-        print >> sys.stderr, stmt,
-    print >> sys.stderr
-    sys.stderr.flush()
+from debug import *
 
 def run_preprocess(parts, vocabulary):
     """
@@ -78,14 +64,11 @@ def preprocess(phrase, vocabulary):
     parts = [p for p in preprocessed if p is not None and len(p) > 0]
     return ' '.join(parts)
 
-def search(phrase, vocabulary, grammar, dbg):
+def search(phrase, vocabulary, grammar):
     """
     The actual search method. Tokenizes a string, simplifies the words, and passes
     them along to the parser.
     """
-
-    global debugging
-    debugging = dbg
 
     orig = ' '.join([o for o in phrase.split() if len(o) > 0])
     debug('Original: ' + orig)
@@ -133,21 +116,18 @@ def search(phrase, vocabulary, grammar, dbg):
 
     # We now have a list of words in reduced form, let's parse them
     try:
-        results = parse(words, grammar, dbg)
+        results = parse(words, grammar)
     except ParserException, e:
         print str(e)
         return 1
 
     return 0
 
-def lookup(word, vocabulary, dbg):
+def lookup(word, vocabulary):
     """
     Look up all known definitions and forms for a word
     """
 
-    global debugging
-
-    debugging = dbg
     word = word.strip().lower()
 
     try:
@@ -165,10 +145,9 @@ def lookup(word, vocabulary, dbg):
 
     if len(keys) == 0:
         print 'No definitions found :('
-        return 1
-
-    for k in keys:
-        print k, '=>', definitions[k]
+    else:
+        for k in keys:
+            print k, '=>', definitions[k]
 
     try:
         wd = Word(word, vocabulary, False)
@@ -178,5 +157,8 @@ def lookup(word, vocabulary, dbg):
             print '"' + word + '" currently maps to "' + reduced + '"'
     except:
         pass
+
+    if len(keys) == 0:
+        return 1
 
     return 0
