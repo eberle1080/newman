@@ -57,14 +57,18 @@ class ClassifierCollection(object):
         import config
 
         size = len(cls)
+        force = False
         while size >= 1:
             end = len(cls) - size + 1
             for n in range(0, end):
-                ret = config.parse(cls[n:size], True if (size <= 1 or force) else False)
+                ret = config.parse(cls[n:size+n], force)
                 if ret != None:
-                    del cls[n:size]
+                    del cls[n:size+n]
                     return ret
             size -= 1
+            if size == 0 and force == False:
+                size = 1
+                force = True
         return None
 
     def _extract(self, ret, arr):
@@ -96,7 +100,8 @@ class ClassifierCollection(object):
                     if ret != None:
                         self._extract(ret, arr)
                         continue
-                    raise ParserException('Unable to meaningfully parse the production symbols')
+                    remaining = '"' + '", "'.join([c[0] for c in cls]) + '"'
+                    raise ParserException('Unable to meaningfully parse the production symbols: ' + remaining)
                 else:
                     return
             else:

@@ -228,7 +228,7 @@ def grammar():
     grammar.append('S -> PART | S CONJ S | PART S')
     grammar.append('PART -> SEG | NOT SEG | NEITHER SEG NOR SEG | BOTH SEG LAND SEG')
     grammar.append('SEG -> DESC | "(" S ")" | "[" S "]" | "{" S "}"')
-    grammar.append('DESC -> COREWORD | DROPWORD')
+    grammar.append('DESC -> NON COREWORD | COREWORD | DROPWORD')
 
     # Negation and conjugation
     grammar.append('CONJ -> AND | OR')
@@ -263,6 +263,10 @@ def grammar():
     grammar.append('PROD_GIRL -> "girl" | "girls"')
     grammar.append('PROD_MALE -> "male" | "men"')
     grammar.append('PROD_FEMALE -> "female" | "women"')
+
+    grammar.append('ATTRACTIVE -> PROD_ATTRACTIVE | PROD_UNATTRACTIVE')
+    grammar.append('PROD_ATTRACTIVE -> "attractive"')
+    grammar.append('PROD_UNATTRACTIVE -> "unattractive"')
 
     # Color / race / hair
     grammar.append('COLOR -> PROD_BLACK | PROD_WHITE | PROD_GRAY | PROD_BLONDE | PROD_BROWN')
@@ -341,8 +345,13 @@ def parse1(productions, force):
             return (('No Eyewear', 1))
         return (('Sunglasses', 1))
     elif name == 'PROD_MALE':
+        if not force:
+            return None
         return (('Male', negToScore(neg)))
     elif name == 'PROD_FEMALE':
+        # Since this could be an attractive female or... you know... the regular kind
+        if not force:
+            return None
         return (('Female', dnegToScore(neg)))
     elif name == 'PROD_BOY':
         return ( ('Male', negToScore(neg)), ('Child', negToScore(neg)) )
@@ -351,8 +360,27 @@ def parse1(productions, force):
 
     return None
 
+def parse2(productions, force):
+    p = {}
+    for prod in productions:
+        p[prod[0]] = prod[1]
+
+    if p.has_key('PROD_ATTRACTIVE'):
+        if p.has_key('PROD_MALE') and p['PROD_MALE'] == True or \
+           p.has_key('PROD_FEMALE') and p['PROD_FEMALE'] == False:
+            return (('Attractive Woman', negToScore(p['PROD_ATTRACTIVE'])))
+    elif p.has_key('PROD_UNATTRACTIVE'):
+        if p.has_key('PROD_MALE') and p['PROD_MALE'] == True or \
+           p.has_key('PROD_FEMALE') and p['PROD_FEMALE'] == False:
+            return (('Attractive Woman', dnegToScore(p['PROD_UNATTRACTIVE'])))
+
+    return None
+
 def parse(productions, force):
     print 'Considering production: ' + str(productions)
+
+    if len(productions) == 2:
+        return parse2(productions, force)
     if len(productions) == 1:
         return parse1(productions, force)
     return None
