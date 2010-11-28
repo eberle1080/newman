@@ -2,18 +2,67 @@
 
 __all__ = ['vocab', 'grammar', 'parse']
 
-def vocab_lookup(word, key):
+class ConfigException(Exception):
+    """
+    There was an error while setting things up
+    """
+    def __init__(self, reason):
+        self.reason = reason
+    def __str__(self):
+        return "Config error: " + self.reason
+
+def add_word(vocab, word, production_rule, keys, aliases):
     """
     Get the synset for a word given its lemma key
     """
 
-    import nltk
-    from nltk.corpus import wordnet as wn
+    if word is None or len(word.strip()) == 0:
+        raise ConfigException("word can't be blank")
 
-    if key is not None:
-        return (word, wn.lemma_from_key(key).synset)
-    else:
-        return (word, None)
+    word = word.strip().lower()
+
+    import nltk, re
+    from nltk.corpus import wordnet as wn
+    from word import BaseWord
+
+    synsets = []
+    if keys != None:
+        if isinstance(keys, (list, tuple)):
+            for k in keys:
+                k = k.strip()
+                s = wn.lemma_from_key(k).synset
+                if s is None:
+                    raise ConfigException('lemma_from_key("%s") returned None' % (keys.strip()))
+                elif s not in synsets:
+                    synsets.append(s)
+        else:
+            s = wn.lemma_from_key(keys.strip()).synset
+            if s is None:
+                raise ConfigException('lemma_from_key("%s") returned None' % (keys.strip()))
+            elif s not in synsets:
+                synsets.append(s)                
+
+    alias_list = []
+
+    try:
+        re.compile(word)
+        alias_list.append(word)
+    except:
+        pass
+
+    if aliases != None:
+        if isinstance(aliases, (list, tuple)):
+            for a in aliases:
+                a = a.strip()
+                if len(a) > 0 and a not in alias_list:
+                    alias_list.append(a)
+        else:
+            a = aliases.strip()
+            if len(a) > 0 and a not in alias_list:
+                alias_list.append(a)
+
+    baseword = BaseWord(word, production_rule, synsets, aliases)
+    vocab.append(baseword)
 
 def vocab():
     """
@@ -33,49 +82,98 @@ def vocab():
     # all technically a person. If it's TOO generic, give it a
     # lemma of None.
 
-    # Simple words            Word            Lemma
+    #
+    # Simple words
+    #
 
-    vocab.append(vocab_lookup('(',            None))
-    vocab.append(vocab_lookup('[',            None))
-    vocab.append(vocab_lookup('{',            None))
-    vocab.append(vocab_lookup('}',            None))
-    vocab.append(vocab_lookup(']',            None))
-    vocab.append(vocab_lookup(')',            None))
+    #               Word       Production    Lemma      Aliases
+    add_word(vocab, '(',       'LPAREN',     None,      (r'\(', r'\[', r'\{'))
+    add_word(vocab, ')',       'RPAREN',     None,      (r'\)', r'\]', r'\}'))
+    add_word(vocab, 'person',  'ANON',       None,      ('somebody', 'someone', 'people', 'human', 'face', 'anyone', 'anybody'))
+    add_word(vocab, 'face',    'ANON',       ('face%1:08:00::', 'visage%1:08:00::'), ('face', 'visage'))
+    add_word(vocab, 'a',       'DET',        None,      ('an', 'one', 'this', 'that', 'some', 'the', 'these', 'those', 'his',
+                                                         'her', 'its', 'their'))
+    add_word(vocab, 'of',      'PREP',       None,      ('in', 'on', 'from'))
+    add_word(vocab, 'is',      'DVERB',      None,      ('is', 'was', 'be', 'been', 'being', 'are'))
+    add_word(vocab, 'very',    'ADV',        None,      ('really', 'quite', 'understandably', 'noticibly', 'obviously',
+                                                        'irritatingly', 'overtly', 'exactly', 'mostly', 'entirely', 'too'))
+    add_word(vocab, 'pair',    'PAIR',       None,      ('set'))
+    add_word(vocab, 'and',     'AND',        None,      ('but', 'with', 'holding', 'wearing', 'having', 'has', 'had', 'containing', 'has'))
+    add_word(vocab, 'or',      'OR',         None,      None)
+    add_word(vocab, 'not',     'NOT',        None,      ('no', 'without', 'lacking', 'missing', 'anti', "n't"))
+    add_word(vocab, 'non',     'NON',        None,      None)
+    add_word(vocab, 'both',    'BOTH',       None,      None)
+    add_word(vocab, 'neither', 'NEITHER',    None,      None)
+    add_word(vocab, 'nor',     'NOR',        None,      None)
+    add_word(vocab, 'which',   'PRONOUN',    None,      ('he', 'she', 'who', 'it', 'they'))
+    add_word(vocab, 'image',   'PROD_IMAGE', ('image%1:06:00::', 'photo%1:06:00::', 'photograph%1:06:00::', 'picture%1:06:00::'),
+                                              ('photo', 'photograph', 'picture'))
 
-    vocab.append(vocab_lookup('a',            None))
-    vocab.append(vocab_lookup('an',           None))
-    vocab.append(vocab_lookup('the',          None))
-    vocab.append(vocab_lookup('some',         None))
-    vocab.append(vocab_lookup('one',          None))
-    vocab.append(vocab_lookup('this',         None))
-    vocab.append(vocab_lookup('of',           None))
-    vocab.append(vocab_lookup('no',           None))
-    vocab.append(vocab_lookup('non',          None))
-    vocab.append(vocab_lookup('not',          None))
-    vocab.append(vocab_lookup('neither',      None))
-    vocab.append(vocab_lookup('nor',          None))
-    vocab.append(vocab_lookup('without',      None))
-    vocab.append(vocab_lookup('or',           None))
-    vocab.append(vocab_lookup('in',           None))
-    vocab.append(vocab_lookup('and',          None))
-    vocab.append(vocab_lookup('with',         None))
-    vocab.append(vocab_lookup('has',          None))
-    vocab.append(vocab_lookup('his',          None))
-    vocab.append(vocab_lookup('her',          None))
-    vocab.append(vocab_lookup('having',       None))
-    vocab.append(vocab_lookup('is',           None))
-    vocab.append(vocab_lookup('person',       None))
-    vocab.append(vocab_lookup('people',       None))
-    vocab.append(vocab_lookup('someone',      None))
-    vocab.append(vocab_lookup('somebody',     None))
-    vocab.append(vocab_lookup('human',        'human%3:01:01::'))
+    #
+    # Colors
+    #
 
-    vocab.append(vocab_lookup('who',          None))
-    vocab.append(vocab_lookup('which',        None))
-    vocab.append(vocab_lookup('image',        None))
-    vocab.append(vocab_lookup('visage',       None))
-    vocab.append(vocab_lookup('face',         None))
-    vocab.append(vocab_lookup('photo',        'photo%1:06:00::'))
+    add_word(vocab, 'black',  'PROD_BLACK',  'black%1:07:00::', None)
+    add_word(vocab, 'blond',  'PROD_BLONDE', 'blond%1:18:00::', ('light-haired'))
+    add_word(vocab, 'brown',  'PROD_BROWN',  None, None)
+    add_word(vocab, 'gray',   'PROD_GRAY',   None, None)
+    add_word(vocab, 'white',  'PROD_WHITE',  None, None)    
+
+    #
+    # Genders
+    #
+
+    add_word(vocab, 'male',   'PROD_MALE',   'man%1:18:00::',   'men')
+    add_word(vocab, 'female', 'PROD_FEMALE', 'woman%1:18:00::', ('women', 'chick', 'chicks'))
+    add_word(vocab, 'girl',   'PROD_GIRL',   'girl%1:18:02::',  'girls')
+    add_word(vocab, 'boy',    'PROD_BOY',    'boy%1:18:00::',   'boys')
+
+    #
+    # Races
+    #
+
+    add_word(vocab, 'black',  'PROD_BLACK',  ('black%1:18:00::'), None)                        # Insert slurs here
+    add_word(vocab, 'asian',  'PROD_ASIAN',  ('asian%1:18:00::', 'asia%1:14:00::'), None)      # Or here
+    add_word(vocab, 'white',  'PROD_WHITE',  ('white%1:18:00::'), None)                        # Or here
+    add_word(vocab, 'indian', 'PROD_INDIAN', ('indian%1:18:01::', 'india%1:15:00::'), None)    # Or here
+
+    #
+    # Facial expressions
+    #
+
+    add_word(vocab, 'smiling',  'PROD_SMILING',  ('smiling%1:10:00::', 'smile%2:29:00::', 'smile%2:32:00::'), None)
+    add_word(vocab, 'frowning', 'PROD_FROWNING', ('frowning%5:00:00:displeased:00', 'frown%1:10:00::', 'frown%2:29:00::'), None)
+
+    #
+    # Words for attractive
+    #
+
+    add_word(vocab, 'attractive',   'PROD_ATTRACTIVE',   ('attractive%3:00:01::', 'hot%5:00:00:sexy:00',
+                                                          'sexy%3:00:00::', 'beautiful%3:00:00::'), None)
+    add_word(vocab, 'unattractive', 'PROD_UNATTRACTIVE', ('unattractive%3:00:00::', 'ugly%3:00:00::'), 'fugly')
+
+    #
+    # Age
+    #
+
+    add_word(vocab, 'child', 'PROD_CHILD', ('child%1:18:00::'), ('children', 'kid', 'kids', 'adolescent',
+                                                                 'adolescents', 'preteen', 'preteens', 'tween', 'tweens'))
+    add_word(vocab, 'baby',  'PROD_BABY',  ('baby%1:18:00::'), None)
+    add_word(vocab, 'adult', 'PROD_ADULT', ('adult%1:18:00::', 'middle-aged%5:00:00:old:02'), ('middle-aged'))
+    add_word(vocab, 'youth', 'PROD_YOUTH', ('teenager%1:18:00::', 'young%3:00:00::', 'youth%1:14:00::'), ('teen', 'teens'))
+
+    # Age                     Word            Lemma
+    #vocab.append(vocab_lookup('teenager',     'teenager%1:18:00::'))
+    #vocab.append(vocab_lookup('old',          'old%3:00:02::'))
+    #vocab.append(vocab_lookup('young',        'young%3:00:00::'))
+    #vocab.append(vocab_lookup('young',        'youth%1:14:00::'))
+    #vocab.append(vocab_lookup('senior',       'senior%5:00:00:old:02'))
+    #vocab.append(vocab_lookup('middle-aged',  'middle-aged%5:00:00:old:02'))
+    #vocab.append(vocab_lookup('middle',       None))
+    #vocab.append(vocab_lookup('aged',         None))
+    #vocab.append(vocab_lookup('age',          None))
+
+    """
 
     # Colors                  Word            Lemma
     vocab.append(vocab_lookup('black',        'black%1:07:00::'))
@@ -132,27 +230,6 @@ def vocab():
     vocab.append(vocab_lookup('strong',       None))
     vocab.append(vocab_lookup('angry',        None))
 
-    # Genders                 Word            Lemma
-    vocab.append(vocab_lookup('male',         'man%1:18:00::'))
-    vocab.append(vocab_lookup('men',          None))
-    vocab.append(vocab_lookup('female',       'woman%1:18:00::'))
-    vocab.append(vocab_lookup('women',        None))
-    vocab.append(vocab_lookup('girl',         'girl%1:18:02::'))
-    vocab.append(vocab_lookup('boy',          'boy%1:18:00::'))
-
-    # Age                     Word            Lemma
-    vocab.append(vocab_lookup('child',        'child%1:18:00::'))
-    vocab.append(vocab_lookup('baby',         'baby%1:18:00::'))
-    vocab.append(vocab_lookup('adult',        'adult%1:18:00::'))
-    vocab.append(vocab_lookup('teenager',     'teenager%1:18:00::'))
-    vocab.append(vocab_lookup('old',          'old%3:00:02::'))
-    vocab.append(vocab_lookup('young',        'young%3:00:00::'))
-    vocab.append(vocab_lookup('young',        'youth%1:14:00::'))
-    vocab.append(vocab_lookup('senior',       'senior%5:00:00:old:02'))
-    vocab.append(vocab_lookup('middle-aged',  'middle-aged%5:00:00:old:02'))
-    vocab.append(vocab_lookup('middle',       None))
-    vocab.append(vocab_lookup('aged',         None))
-    vocab.append(vocab_lookup('age',          None))
 
     # Hair                    Word            Lemma
     vocab.append(vocab_lookup('bald',         None))
@@ -214,6 +291,7 @@ def vocab():
     vocab.append(vocab_lookup('candid',       None))
     vocab.append(vocab_lookup('natural',      None))
     vocab.append(vocab_lookup('soft',         None))
+    """
 
     return vocab
 
@@ -377,8 +455,6 @@ def parse2(productions, force):
     return None
 
 def parse(productions, force):
-    print 'Considering production: ' + str(productions)
-
     if len(productions) == 2:
         return parse2(productions, force)
     if len(productions) == 1:
