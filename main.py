@@ -5,7 +5,7 @@ import sys, os, getopt, config
 from search import *
 from debug import *
 
-def batch(batchFile, vocabulary, grammar):
+def batch(batchFile, vocabulary, grammar, generator):
     """
     Run a batch search
     """
@@ -27,7 +27,7 @@ def batch(batchFile, vocabulary, grammar):
         print '-'*80
         print searchString.center(80)
         print '-'* 80
-        search(searchString, vocabulary, grammar)
+        search(searchString, vocabulary, grammar, generator)
 
 def usage():
     """
@@ -78,14 +78,14 @@ def main():
         sys.exit(1)
 
     debug('Initializing...')
-    vocabulary, grammar = config.configure()
+    vocabulary, grammar, generator = config.configure()
 
     if lookupString != None and len(lookupString) > 0:
         sys.exit(lookup(lookupString, vocabulary))
     elif batchFile != None and len(batchFile) > 0:
-        batch(batchFile, vocabulary, grammar)
+        batch(batchFile, vocabulary, grammar, generator)
     else:
-        sys.exit(search(searchString, vocabulary, grammar))
+        sys.exit(search(searchString, vocabulary, grammar, generator))
 
 if __name__ == '__main__':
     main()

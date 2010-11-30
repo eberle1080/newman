@@ -1,5 +1,7 @@
 # Author: Chris Eberle <eberle1080@gmail.com>
 
+from generator import *
+
 class ParserException(Exception):
     """
     There was an error during parsing
@@ -10,13 +12,14 @@ class ParserException(Exception):
         return "Parse error: " + self.reason
 
 class ClassifierCollection(object):
-    def __init__(self):
+    def __init__(self, generator):
         self._classifiers = []
         self._classifiers.append([])
         self._final = []
         self._pos = 0
         self._valid = 0
         self._text = []
+        self._generator = generator
     
     def addtext(self, text):
         self._text.append(text)
@@ -50,43 +53,30 @@ class ClassifierCollection(object):
     def pprint(self):
         classifiers = []
         for n in xrange(self._valid):
-            classifiers.append(', '.join([name + ' => ' + str(negate) for (name, negate) in self._final[n]]))
+            classifiers.append(', '.join([r.name() + ' => ' + str(r.value()) for r in self._final[n]]))
         print '(' + ') | ('.join(classifiers) + ')'
 
-    def _gauntlet(self, cls, force):
+    def _gauntlet(self, cls, desperate):
         import config
 
         size = len(cls)
-        force = False
+        desperate = False
+
         while size >= 1:
             end = len(cls) - size + 1
             for n in range(0, end):
-                ret = config.parse(cls[n:size+n], force)
+                # God I love this language
+                prods = [ProductionSymbol(p[0], p[1]) for p in cls[n:size+n]]
+                ret = self._generator.get_mapping(prods, desperate)
                 if ret != None:
                     del cls[n:size+n]
                     return ret
             size -= 1
-            if size == 0 and force == False:
+            if size == 0 and desperate == False:
                 size = 1
-                force = True
-        return None
+                desperate = True
 
-    def _extract(self, ret, arr):
-        if ret == None:
-            return 0
-        if isinstance(ret, (list, tuple)):
-            if len(ret) == 0:
-                return 0
-            if isinstance(ret[0], (list, tuple)):
-                num = 0
-                for item in ret:
-                    num += self._extract(item, arr)
-                return
-            if len(ret) < 2:
-                return 0
-            arr.append((ret[0], ret[1]))
-            return 1
-        return 0
+        return None
 
     def _convert(self, n):
         arr = self._final[n]
@@ -98,14 +88,16 @@ class ClassifierCollection(object):
                 if len(cls) > 0:
                     ret = self._gauntlet(cls, True)
                     if ret != None:
-                        self._extract(ret, arr)
+                        for r in ret:
+                            arr.append(r)
                         continue
                     remaining = '"' + '", "'.join([c[0] for c in cls]) + '"'
                     raise ParserException('Unable to meaningfully parse the production symbols: ' + remaining)
                 else:
                     return
             else:
-                self._extract(ret, arr)
+                for r in ret:
+                    arr.append(r)
 
     def _convert_all(self):
         self._final = []
@@ -124,35 +116,48 @@ def rparse(tree, classifiers, negate, depth = 0):
     rv = None
     for tr in tree:
         if isinstance(tr, nltk.Tree):
+            name = str(tr.node)
+
+            debug('.'*depth + name + " (negate = " + str(myneg) + ")")
             val = rparse(tr, classifiers, myneg, depth + 1)
+
             if val == True:
-                lastneg = myneg
                 myneg = not myneg
-            elif val == False:
+            else if val == False:
                 myneg = lastneg
+
         elif isinstance(tr, basestring):
             name = str(tree.node)
             if name.startswith('PROD_'):
                 # Cheap dirty hack so that I know it's a real classifier
+                debug('.'*depth + "Production symbol: " + name + " (negate = " + str(myneg) + ")")
                 classifiers.add(name, myneg)
                 classifiers.addtext(tr)
-                rv = None
+
             elif name in ('NOT', 'NON', 'NEITHER'):
+                debug('.'*depth + 'NEGATE')
                 classifiers.addtext(tr)
                 myneg = not negate
                 rv = True
+
             elif name == 'NOR':
+                debug('.'*depth + 'NEGATE')
                 classifiers.addtext(tr)
                 myneg = not negate
                 rv = True
+
             elif name == 'OR':
+                debug('.'*depth + 'OR')
                 classifiers.next()
             else:
+                debug('.'*depth + str(tr)+ " (negate = " + str(myneg) + ")")
                 classifiers.addtext(tr)
 
+    if rv is None:
+        return myneg
     return rv
 
-def parse(wordlist, grammar):
+def parse(wordlist, grammar, generator):
     """
     Parse this thang
     """
@@ -170,9 +175,10 @@ def parse(wordlist, grammar):
 
         trees = parser.nbest_parse(parts)
 
-        classifiers = ClassifierCollection()
+        classifiers = ClassifierCollection(generator)
         ct = 0
         for tree in trees:
+            print tree
             rparse(tree, classifiers, False)
             ct += 1
             break

@@ -16,7 +16,7 @@ def run_preprocess(parts, vocabulary):
         prange = range(0, end)
         prange.reverse()
         for n in prange:
-            pre = ' '.join(parts[n:size+n])
+            pre = (' '.join(parts[n:size+n])).lower()
 
             for vword in vocabulary:
                 if vword.word == pre:
@@ -64,7 +64,7 @@ def preprocess(phrase, vocabulary):
     parts = [p for p in preprocessed if p is not None and len(p) > 0]
     return ' '.join(parts)
 
-def search(phrase, vocabulary, grammar):
+def search(phrase, vocabulary, grammar, generator):
     """
     The actual search method. Tokenizes a string, simplifies the words, and passes
     them along to the parser.
@@ -116,7 +116,7 @@ def search(phrase, vocabulary, grammar):
 
     # We now have a list of words in reduced form, let's parse them
     try:
-        results = parse(words, grammar)
+        results = parse(words, grammar, generator)
     except ParserException, e:
         print str(e)
         return 1

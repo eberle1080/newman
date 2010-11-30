@@ -71,8 +71,46 @@ def add_word(vocab, word, production_rule, keys = None, aliases = None):
     baseword = BaseWord(word, production_rule, synsets, aliases)
     vocab.append(baseword)
 
-def add_pars(parses, productions, func):
-    pass
+def symplify(sym, negate):
+    """
+    Turn one or more literal production symbol names into a
+    list of ProductionSymbol objectes
+    """
+
+    from generator import ProductionSymbol as ps
+    if isinstance(sym, (list, tuple)):
+        return [ps(s, negate) for s in sym]
+    else:
+        return [ps(sym, negate)]
+
+def simple_map(gen, sym, cls, val = 1, nval = -1):
+    """
+    An easier way to call gen.add_mapping when you
+    need to handle both the positive AND negative
+    cases for something.
+    """
+
+    from generator import ProductionSymbol as ps
+    from generator import ClassifierResult as cr
+    from generator import UnsupportedSearch
+
+    if callable(cls) or isinstance(cls, UnsupportedSearch):
+        gen.add_mapping(symplify(sym, False), cls)
+        gen.add_mapping(symplify(sym, True), cls)
+    else:
+        norm = []
+        neg = []
+        if isinstance(cls, (list, tuple)):
+            for c in cls:
+                if c is not None and len(c.strip()) > 0:
+                    norm.append(cr(c.strip(), val))
+                    neg.append(cr(c.strip(), nval))
+        else:
+            norm.append(cr(cls.strip(), val))
+            neg.append(cr(cls.strip(), nval))
+
+        gen.add_mapping(symplify(sym, False), norm)
+        gen.add_mapping(symplify(sym, True), neg)
 
 def configure():
     """
@@ -97,6 +135,9 @@ def configure():
     # Supported grammar
     gramm = []
 
+    # Classifier generator -- rules for generating classifiers
+    from generator import ClassifierGenerator
+    gen = ClassifierGenerator()
 
     # Sentences
     add_rule(gramm, 'S -> PART | S CONJ S | PART S')
@@ -134,8 +175,8 @@ def configure():
 
     # Gender
     add_rule(gramm, 'GENDER -> PROD_MALE | PROD_FEMALE | PROD_BOY | PROD_GIRL')
-    add_word(vocab, 'male',   'PROD_MALE',   'man%1:18:00::',   'men')
-    add_word(vocab, 'female', 'PROD_FEMALE', 'woman%1:18:00::', ('women', 'chick', 'chicks'))
+    add_word(vocab, 'male',   'PROD_MALE',   'man%1:18:00::',   ('man', 'men'))
+    add_word(vocab, 'female', 'PROD_FEMALE', 'woman%1:18:00::', ('woman', 'women', 'chick', 'chicks'))
     add_word(vocab, 'girl',   'PROD_GIRL',   'girl%1:18:02::',  'girls')
     add_word(vocab, 'boy',    'PROD_BOY',    'boy%1:18:00::',   'boys')
 
@@ -194,7 +235,55 @@ def configure():
     add_word(vocab, 'skinny',      'PROD_NOT_CHUBBY')
     add_word(vocab, 'angry',       'PROD_ANGRY', 'angry%3:00:00::', ('upset', 'pissed off'))
 
-    #add_pars(parse, 'PROD_ANGRY', handle_angry)
+    # Generator rules
+    from generator import ClassifierResult as cr
+    from generator import ProductionSymbol as ps
+    from generator import UnsupportedSearch
+
+    # This is a wicked powerful statement, lemme explain
+    # When the PROD_MALE symbol is encountered, it calls this labmda function with two paramters:
+    #   s: a tuple of ProductionSymbol objects (in this case, just PROD_MALE)
+    #   d: desperate (boolean). Hard to explain, but basically this affects wheter or not
+    #      to defer processing of the symbol until later. If this is false, the parser is
+    #      not desperate, and it's up to the lambda function to defer. If it's true, well
+    #      it's time to give it up. Very useful for things like "attractive female".
+    simple_map(gen, 'PROD_MALE', lambda s,d: cr('Male', -1 if s[0].negate() else 1) if d else None)
+    simple_map(gen, 'PROD_FEMALE', lambda s,d: cr('Male', 1 if s[0].negate() else 1) if d else None)
+
+    # Since attractive female is a multi-symbol concept, simple_map won't work, here's how to
+    # call off to this thing for something more complicated. Note that this only looks for
+    # attractive / unattractive FEMALE (see the negating of PROD_MALE?). Any queries for an
+    # attractive MALE will fail. Heh. Male fail. God it's late.
+    attractive_female = cr('Attractive Woman', 1)
+    unattractive_female = cr('Attractive Woman', -1)
+    gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_ATTRACTIVE', False)),    (attractive_female) )
+    gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_ATTRACTIVE', False)), (attractive_female) )
+    gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_ATTRACTIVE', True)),     (unattractive_female) )
+    gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_ATTRACTIVE', True)),  (unattractive_female) )
+
+    # And now you know the hard stuff, so here's a really simple one. This will automatically
+    # take care of the positive and negative cases. The values, by default, map to 1 and -1.
+    simple_map(gen, 'PROD_SMILING', 'Smiling')
+    simple_map(gen, 'PROD_ASIAN', 'Asian')
+
+    # Glasses. God I hate you glasses.
+    eyeglasses = cr('Eyeglasses', 1)
+    sunglasses = cr('Sunglasses', 1)
+    no_glasses = cr('No Eyewear', 1)
+    gen.add_mapping( ps('PROD_GLASSES',    False), eyeglasses ) # A search for "glasses"
+    gen.add_mapping( ps('PROD_GLASSES',    True),  no_glasses ) # A search for "no glasses"
+    gen.add_mapping( ps('PROD_SUNGLASSES', False), sunglasses ) # A search for "sunglasses"
+    gen.add_mapping( ps('PROD_SUNGLASSES', True),  no_glasses ) # A search for "no sunglasses"
+
+    # Returning multiple classifiers
+    gen.add_mapping( ps('PROD_BOY', False), ( cr('Male', 1), cr('Child', 1) ) )
+    gen.add_mapping( ps('PROD_GIRL', False), ( cr('Male', -1), cr('Child', 1) ) )
+
+    # Disallowing certain searches. In this case, "not boy" is actually impossible
+    # to search for, thanks to the way the classifiers are set up. Same with "not girl".
+    gen.add_mapping( ps('PROD_BOY', True),  UnsupportedSearch('non-boy') )
+    gen.add_mapping( ps('PROD_GIRL', True), UnsupportedSearch('non-girl') )
+
 
     # The rest of this builds our grammar from our vocab
     productions = {}
@@ -218,7 +307,7 @@ def configure():
 
     grammar = '\n'.join(gramm)
 
-    return (vocab, grammar)
+    return (vocab, grammar, gen)
 
 def negToScore(negate):
     if negate:
