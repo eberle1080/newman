@@ -123,7 +123,7 @@ def rparse(tree, classifiers, negate, depth = 0):
 
             if val == True:
                 myneg = not myneg
-            else if val == False:
+            elif val == False:
                 myneg = lastneg
 
         elif isinstance(tr, basestring):
