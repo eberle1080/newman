@@ -121,27 +121,30 @@ def configure():
     of 'lemma keys' -> 'definitions' for a given word.
     """
 
-    # Supported vocabulary
-    #
-    # BE CAREFUL ABOUT WHAT YOU PUT HERE.
-    #
-    # Oh sure, "person" might seem like a good candidate, but just
-    # remember that Nazis, Kings, Blacksmiths, and Gary Busey are
-    # all technically a person. If it's TOO generic, give it a
-    # lemma of None.
+    from generator import ClassifierGenerator
 
+    # Supported vocabulary
     vocab = []
 
     # Supported grammar
     gramm = []
 
     # Classifier generator -- rules for generating classifiers
-    from generator import ClassifierGenerator
     gen = ClassifierGenerator()
 
+    ################################################################################
+    # Basic grammar and vocabulary
+    ################################################################################
+
+    # BE CAREFUL ABOUT WHAT YOU PUT FOR YOUR SYNNETS
+    # Oh sure, "person" might seem like a good candidate, but just
+    # remember that Nazis, Kings, Blacksmiths, and Gary Busey are
+    # all technically a person. If it's TOO generic, give it a
+    # lemma of None.
+
     # Sentences
-    add_rule(gramm, 'S -> PART | S CONJ S | PART S')
-    add_rule(gramm, 'PART -> SEG | NOT SEG | NEITHER SEG NOR SEG | BOTH SEG AND SEG')
+    add_rule(gramm, 'S -> PART | S CONJ S | PART S | NOT S')
+    add_rule(gramm, 'PART -> SEG | NEITHER SEG NOR SEG | BOTH SEG AND SEG')
     add_rule(gramm, 'SEG -> DESC | LPAREN S RPAREN')
     add_rule(gramm, 'DESC -> NON COREWORD | COREWORD | NON DROPWORD | DROPWORD')
     add_word(vocab, '(',       'LPAREN',     None,      (r'\(', r'\[', r'\{'))
@@ -235,7 +238,11 @@ def configure():
     add_word(vocab, 'skinny',      'PROD_NOT_CHUBBY')
     add_word(vocab, 'angry',       'PROD_ANGRY', 'angry%3:00:00::', ('upset', 'pissed off'))
 
+
+    ################################################################################
     # Generator rules
+    ################################################################################
+
     from generator import ClassifierResult as cr
     from generator import ProductionSymbol as ps
     from generator import UnsupportedSearch
@@ -258,8 +265,12 @@ def configure():
     unattractive_female = cr('Attractive Woman', -1)
     gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_ATTRACTIVE', False)),    (attractive_female) )
     gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_ATTRACTIVE', False)), (attractive_female) )
+    gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_UNATTRACTIVE', True)),     (attractive_female) )
+    gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_UNATTRACTIVE', True)),  (attractive_female) )
     gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_ATTRACTIVE', True)),     (unattractive_female) )
     gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_ATTRACTIVE', True)),  (unattractive_female) )
+    gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_UNATTRACTIVE', False)),     (unattractive_female) )
+    gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_UNATTRACTIVE', False)),  (unattractive_female) )
 
     # And now you know the hard stuff, so here's a really simple one. This will automatically
     # take care of the positive and negative cases. The values, by default, map to 1 and -1.
@@ -284,6 +295,9 @@ def configure():
     gen.add_mapping( ps('PROD_BOY', True),  UnsupportedSearch('non-boy') )
     gen.add_mapping( ps('PROD_GIRL', True), UnsupportedSearch('non-girl') )
 
+    ################################################################################
+    # Grammar generation, do not touch
+    ################################################################################
 
     # The rest of this builds our grammar from our vocab
     productions = {}
@@ -308,70 +322,3 @@ def configure():
     grammar = '\n'.join(gramm)
 
     return (vocab, grammar, gen)
-
-def negToScore(negate):
-    if negate:
-        return -1
-    else:
-        return 1
-
-def dnegToScore(negate):
-    if negate:
-        return 1
-    else:
-        return -1
-
-def parse1(productions, force):
-    name = productions[0][0]
-    neg = productions[0][1]
-    if name == 'PROD_SMILING':
-        return (('Smiling', negToScore(neg)))
-    elif name == 'PROD_ASIAN':
-        return (('Asian', negToScore(neg)))
-    elif name == 'PROD_GLASSES':
-        if neg:
-            return (('No Eyewear', 1))
-        return (('Eyeglasses', 1))
-    elif name == 'PROD_SUNGLASSES':
-        if neg:
-            return (('No Eyewear', 1))
-        return (('Sunglasses', 1))
-    elif name == 'PROD_MALE':
-        if not force:
-            return None
-        return (('Male', negToScore(neg)))
-    elif name == 'PROD_FEMALE':
-        # Since this could be an attractive female or... you know... the regular kind
-        if not force:
-            return None
-        return (('Male', dnegToScore(neg)))
-    elif name == 'PROD_BOY':
-        return ( ('Male', negToScore(neg)), ('Child', negToScore(neg)) )
-    elif name == 'PROD_GIRL':
-        return ( ('Male', dnegToScore(neg)), ('Child', dnegToScore(neg)) )
-
-    return None
-
-def parse2(productions, force):
-    p = {}
-    for prod in productions:
-        p[prod[0]] = prod[1]
-
-    if p.has_key('PROD_ATTRACTIVE'):
-        if p.has_key('PROD_MALE') and p['PROD_MALE'] == True or \
-           p.has_key('PROD_FEMALE') and p['PROD_FEMALE'] == False:
-            return (('Attractive Woman', negToScore(p['PROD_ATTRACTIVE'])))
-    elif p.has_key('PROD_UNATTRACTIVE'):
-        if p.has_key('PROD_MALE') and p['PROD_MALE'] == True or \
-           p.has_key('PROD_FEMALE') and p['PROD_FEMALE'] == False:
-            return (('Attractive Woman', dnegToScore(p['PROD_UNATTRACTIVE'])))
-
-    return None
-
-def parse(productions, force):
-    if len(productions) == 2:
-        return parse2(productions, force)
-    if len(productions) == 1:
-        return parse1(productions, force)
-    return None
-

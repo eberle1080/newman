@@ -52,8 +52,15 @@ class ClassifierCollection(object):
 
     def pprint(self):
         classifiers = []
-        for n in xrange(self._valid):
-            classifiers.append(', '.join([r.name() + ' => ' + str(r.value()) for r in self._final[n]]))
+        for n in xrange(len(self._final)):
+            values = []
+            for (name, val) in self._final[n]:
+                if val > 0:
+                    pval = 'Yes'
+                else:
+                    pval = 'No'
+                values.append(name + ' => ' + pval)
+            classifiers.append(', '.join(values))
         print '(' + ') | ('.join(classifiers) + ')'
 
     def _gauntlet(self, cls, desperate):
@@ -107,6 +114,35 @@ class ClassifierCollection(object):
             self._final.append([])
             self._convert(n)
 
+        classifiers = []
+        for n in xrange(self._valid):
+            fc = self._final[n]
+
+            mv = {}
+            counter = {}
+
+            for r in fc:
+                if not counter.has_key(r.name()):
+                    counter[r.name()] = 0
+                if not mv.has_key(r.name()):
+                    mv[r.name()] = 0
+
+                counter[r.name()] += 1
+                mv[r.name()] += r.value()
+
+            keys = mv.keys()
+            keys.sort()
+            tmp = []
+            for k in keys:
+                avg = float(mv[k]) / float(counter[k])
+                if avg < -0.0001 or avg > 0.0001:
+                    tmp.append((k, avg))
+
+            if len(tmp) > 0:
+                classifiers.append(tmp)
+
+        self._final = classifiers
+
 def rparse(tree, classifiers, negate, depth = 0):
     import nltk, config
 
@@ -123,8 +159,6 @@ def rparse(tree, classifiers, negate, depth = 0):
 
             if val == True:
                 myneg = not myneg
-            elif val == False:
-                myneg = lastneg
 
         elif isinstance(tr, basestring):
             name = str(tree.node)
@@ -149,12 +183,11 @@ def rparse(tree, classifiers, negate, depth = 0):
             elif name == 'OR':
                 debug('.'*depth + 'OR')
                 classifiers.next()
+
             else:
                 debug('.'*depth + str(tr)+ " (negate = " + str(myneg) + ")")
                 classifiers.addtext(tr)
 
-    if rv is None:
-        return myneg
     return rv
 
 def parse(wordlist, grammar, generator):
