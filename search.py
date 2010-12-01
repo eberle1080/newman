@@ -16,8 +16,7 @@ def run_preprocess(parts, vocabulary):
         prange = range(0, end)
         prange.reverse()
         for n in prange:
-            pre = (' '.join(parts[n:size+n])).lower()
-
+            pre = (' '.join(parts[n:size+n])).lower().rstrip(",.!\"'")
             for vword in vocabulary:
                 if vword.word == pre:
                     continue

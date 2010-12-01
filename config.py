@@ -1,6 +1,6 @@
 # Author: Chris Eberle <eberle1080@gmail.com>
 
-__all__ = ['configure', 'parse']
+__all__ = ['configure']
 
 class ConfigException(Exception):
     """
@@ -152,7 +152,7 @@ def configure():
 
     # Negation and conjugation
     add_rule(gramm, 'CONJ -> AND | OR')
-    add_word(vocab, 'and',     'AND',        None,      ('but', 'with', 'holding', 'wearing', 'having', 'has', 'had', 'containing', 'has'))
+    add_word(vocab, 'and',     'AND',        None,      ('but', 'with', 'holding', 'wearing', 'having', 'has', 'had', 'containing', 'has', 'and and'))
     add_word(vocab, 'not',     'NOT',        None,      ('no', 'without', 'lacking', 'missing', 'anti', "n't"))
     add_word(vocab, 'or',      'OR')
     add_word(vocab, 'non',     'NON')
@@ -161,9 +161,9 @@ def configure():
     add_word(vocab, 'nor',     'NOR')
 
     # Drop words (words that we just ignore)
-    add_rule(gramm, 'DROPWORD -> DET | PRONOUN | ADV | PREP | DVERB | ANON | PAIR')
-    add_word(vocab, 'person',  'ANON',       None,      ('somebody', 'someone', 'people', 'human', 'face', 'anyone', 'anybody'))
-    add_word(vocab, 'face',    'ANON',       ('face%1:08:00::', 'visage%1:08:00::'), ('face', 'visage'))
+    add_rule(gramm, 'DROPWORD -> DET | PRONOUN | ADV | PREP | DVERB | ANON_PERSON | ANON_FACE | PAIR')
+    add_word(vocab, 'person',  'ANON_PERSON',       None,      ('somebody', 'someone', 'people', 'human', 'anyone', 'anybody'))
+    add_word(vocab, 'face',    'ANON_FACE',       ('face%1:08:00::', 'visage%1:08:00::'), ('face', 'visage'))
     add_word(vocab, 'a',       'DET',        None,      ('an', 'one', 'this', 'that', 'some', 'the', 'these', 'those', 'his',
                                                            'her', 'its', 'their'))
     add_word(vocab, 'of',      'PREP',       None,      ('in', 'on', 'from'))
@@ -174,7 +174,7 @@ def configure():
     add_word(vocab, 'which',   'PRONOUN',    None,      ('he', 'she', 'who', 'it', 'they'))
 
     # Core words
-    add_rule(gramm, 'COREWORD -> GENDER | RACE | ATTRACTIVE | COLOR | HAIR | PHOTO | ITEMS | FACE')
+    add_rule(gramm, 'COREWORD -> GENDER | RACE | AGE | ATTRACTIVE | COLOR | HAIR | PHOTO | ITEMS | FACE')
 
     # Gender
     add_rule(gramm, 'GENDER -> PROD_MALE | PROD_FEMALE | PROD_BOY | PROD_GIRL')
@@ -211,33 +211,45 @@ def configure():
     add_word(vocab, 'wavy',     'PROD_WAVY')
     add_word(vocab, 'bald',     'PROD_BALD', ('bald%5:00:00:hairless:00', 'hairless%3:00:00::'))
     add_word(vocab, 'balding',  'PROD_BALDING', None, ('receding hairline', 'hairline receding'))
+    add_word(vocab, 'hair',     'PROD_HAIR')
+
+    # Age
+    add_rule(gramm, 'AGE -> PROD_OLD')
+    add_word(vocab, 'old', 'PROD_OLD', 'old%3:00:02::')
 
     # Photo types
-    add_rule(gramm, 'PHOTO -> PROD_IMAGE | PHOTOTYPE')
+    add_rule(gramm, 'PHOTO -> IMAGE | PHOTOTYPE')
     add_rule(gramm, 'PHOTOTYPE -> PROD_POSED | PROD_NOT_POSED | PROD_COLOR | PROD_NOT_COLOR')
-    add_word(vocab, 'image',   'PROD_IMAGE', ('image%1:06:00::', 'photo%1:06:00::', 'photograph%1:06:00::', 'picture%1:06:00::'),
-                                              ('photo', 'photograph', 'picture'))
+    add_word(vocab, 'image',   'IMAGE', ('image%1:06:00::', 'photo%1:06:00::', 'photograph%1:06:00::', 'picture%1:06:00::'),
+                                        ('photo', 'photograph', 'picture'))
     add_word(vocab, 'posed',   'PROD_POSED', None, 'prepared')
     add_word(vocab, 'candid',  'PROD_NOT_POSED', None, ('surprised?'))
     add_word(vocab, 'color',   'PROD_COLOR', 'color%1:07:01::', ('colorful', 'vibrant'))
     add_word(vocab, 'b&w',     'PROD_NOT_COLOR', 'monochromatic%5:00:00:colored:00', ('colorless', 'black and white', 'monochromatic'))
 
     # Items (hats, etc)
-    add_rule(gramm, 'ITEMS -> GLASSES')
+    add_rule(gramm, 'ITEMS -> GLASSES | PROD_HAT')
     add_rule(gramm, 'GLASSES -> PROD_GLASSES | PROD_SUNGLASSES')
     add_word(vocab, 'glasses',    'PROD_GLASSES', 'glasses%1:06:00::')
     add_word(vocab, 'sunglasses', 'PROD_SUNGLASSES', 'sunglasses%1:06:00::')
+    add_word(vocab, 'hat',        'PROD_HAT', 'hat%1:06:00::')
     
     # Facial features
     add_rule(gramm, 'FACE -> PROD_SMILING | PROD_FROWNING | PROD_DOUBLECHIN | PROD_CHUBBY' +
-                   ' | PROD_NOT_CHUBBY | PROD_ANGRY')
+                   ' | PROD_NOT_CHUBBY | PROD_ANGRY | PROD_HIGH | PROD_CHEEKBONE | PROD_BIG' +
+                   ' | PROD_NOSE | PROD_SMALL | PROD_OVAL ANON_FACE')
     add_word(vocab, 'smiling',     'PROD_SMILING',  ('smiling%1:10:00::', 'smile%2:29:00::', 'smile%2:32:00::'), None)
     add_word(vocab, 'frowning',    'PROD_FROWNING', ('frowning%5:00:00:displeased:00', 'frown%1:10:00::', 'frown%2:29:00::'), None)
-    add_word(vocab, 'double-chin', 'PROD_DOUBLECHIN', None, ('double[ -]chin(ned)?', 'two chins', 'two-chinned'))
+    add_word(vocab, 'double-chin', 'PROD_DOUBLECHIN', None, ('double chin', 'two chins', 'a chin count of two', 'chins of two', 'two-chinned'))
     add_word(vocab, 'chubby',      'PROD_CHUBBY')
     add_word(vocab, 'skinny',      'PROD_NOT_CHUBBY')
     add_word(vocab, 'angry',       'PROD_ANGRY', 'angry%3:00:00::', ('upset', 'pissed off'))
-
+    add_word(vocab, 'high',        'PROD_HIGH', ('high%3:00:01::', 'high%3:00:02::'))
+    add_word(vocab, 'cheekbone',   'PROD_CHEEKBONE', ('cheekbone%1:08:00::', 'cheek%1:08:00::'), ('cheeks', 'cheekbones'))
+    add_word(vocab, 'big',         'PROD_BIG', 'big%3:00:01::')
+    add_word(vocab, 'small',       'PROD_SMALL', 'small%3:00:00::')
+    add_word(vocab, 'nose',        'PROD_NOSE', 'nose%1:08:00::')
+    add_word(vocab, 'oval',        'PROD_OVAL', 'oval%5:00:00:rounded:00')
 
     ################################################################################
     # Generator rules
@@ -255,7 +267,8 @@ def configure():
     #      not desperate, and it's up to the lambda function to defer. If it's true, well
     #      it's time to give it up. Very useful for things like "attractive female".
     simple_map(gen, 'PROD_MALE', lambda s,d: cr('Male', -1 if s[0].negate() else 1) if d else None)
-    simple_map(gen, 'PROD_FEMALE', lambda s,d: cr('Male', 1 if s[0].negate() else 1) if d else None)
+    simple_map(gen, 'PROD_FEMALE', lambda s,d: cr('Male', 1 if s[0].negate() else -1) if d else None)
+    simple_map(gen, 'PROD_BLACK', lambda s,d: cr('Black', -1 if s[0].negate() else 1) if d else None)
 
     # Since attractive female is a multi-symbol concept, simple_map won't work, here's how to
     # call off to this thing for something more complicated. Note that this only looks for
@@ -263,19 +276,47 @@ def configure():
     # attractive MALE will fail. Heh. Male fail. God it's late.
     attractive_female = cr('Attractive Woman', 1)
     unattractive_female = cr('Attractive Woman', -1)
-    gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_ATTRACTIVE', False)),    (attractive_female) )
-    gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_ATTRACTIVE', False)), (attractive_female) )
-    gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_UNATTRACTIVE', True)),     (attractive_female) )
-    gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_UNATTRACTIVE', True)),  (attractive_female) )
-    gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_ATTRACTIVE', True)),     (unattractive_female) )
-    gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_ATTRACTIVE', True)),  (unattractive_female) )
-    gen.add_mapping( (ps('PROD_MALE', True), ps('PROD_UNATTRACTIVE', False)),     (unattractive_female) )
-    gen.add_mapping( (ps('PROD_FEMALE', False), ps('PROD_UNATTRACTIVE', False)),  (unattractive_female) )
+    gen.add_mapping( (ps('PROD_MALE', True),     ps('PROD_ATTRACTIVE', False)),    (attractive_female) )
+    gen.add_mapping( (ps('PROD_FEMALE', False),  ps('PROD_ATTRACTIVE', False)),    (attractive_female) )
+    gen.add_mapping( (ps('PROD_MALE', True),     ps('PROD_UNATTRACTIVE', True)),   (attractive_female) )
+    gen.add_mapping( (ps('PROD_FEMALE', False),  ps('PROD_UNATTRACTIVE', True)),   (attractive_female) )
+    gen.add_mapping( (ps('PROD_MALE', True),     ps('PROD_ATTRACTIVE', True)),     (unattractive_female) )
+    gen.add_mapping( (ps('PROD_FEMALE', False),  ps('PROD_ATTRACTIVE', True)),     (unattractive_female) )
+    gen.add_mapping( (ps('PROD_MALE', True),     ps('PROD_UNATTRACTIVE', False)),  (unattractive_female) )
+    gen.add_mapping( (ps('PROD_FEMALE', False),  ps('PROD_UNATTRACTIVE', False)),  (unattractive_female) )
 
     # And now you know the hard stuff, so here's a really simple one. This will automatically
     # take care of the positive and negative cases. The values, by default, map to 1 and -1.
     simple_map(gen, 'PROD_SMILING', 'Smiling')
     simple_map(gen, 'PROD_ASIAN', 'Asian')
+    simple_map(gen, 'PROD_DOUBLECHIN', 'Double Chin')
+    simple_map(gen, 'PROD_ANGRY', ('Frowning', 'Arched Eyebrows'))
+    simple_map(gen, 'PROD_HAT', 'Wearing Hat')
+    simple_map(gen, ('PROD_HIGH', 'PROD_CHEEKBONE'), 'High Cheekbones')
+    simple_map(gen, 'PROD_OVAL', 'Oval Face')
+    simple_map(gen, 'PROD_OLD', 'Senior')
+
+    # Also fairly simple with the "NOT" words reversing the logic
+    simple_map(gen, 'PROD_POSED', 'Posed Photo')
+    simple_map(gen, 'PROD_NOT_POSED', 'Posed Photo', -1, 1)
+    simple_map(gen, 'PROD_CHUBBY', 'Chubby')
+    simple_map(gen, 'PROD_NOT_CHUBBY', 'Chubby', -1, 1)
+
+    # Hair types
+    gen.add_mapping( (ps('PROD_CURLY', False), ps('PROD_HAIR', False)), cr('Curly Hair', 1) )
+    gen.add_mapping( (ps('PROD_CURLY', True),  ps('PROD_HAIR', True)),  cr('Curly Hair', -1) )
+    gen.add_mapping( (ps('PROD_CURLY', True),  ps('PROD_HAIR', False)), cr('Curly Hair', -1) )
+    gen.add_mapping( (ps('PROD_BLACK', False), ps('PROD_HAIR', False)), cr('Black Hair', 1) )
+    gen.add_mapping( (ps('PROD_BLACK', True),  ps('PROD_HAIR', True)),  cr('Black Hair', -1) )
+    gen.add_mapping( (ps('PROD_BLACK', True),  ps('PROD_HAIR', False)), cr('Black Hair', -1) )
+
+    # Facial features
+    gen.add_mapping( (ps('PROD_BIG', False), ps('PROD_NOSE', False)), cr('Big Nose', 1) )
+    gen.add_mapping( (ps('PROD_BIG', True), ps('PROD_NOSE', False)), cr('Big Nose', -1) )
+    gen.add_mapping( (ps('PROD_BIG', True), ps('PROD_NOSE', True)), cr('Big Nose', -1) )
+    gen.add_mapping( (ps('PROD_SMALL', False), ps('PROD_NOSE', False)), cr('Big Nose', -1) )
+    gen.add_mapping( (ps('PROD_SMALL', True), ps('PROD_SMALL', False)), cr('Big Nose', 1) )
+    gen.add_mapping( (ps('PROD_SMALL', True), ps('PROD_NOSE', True)), cr('Big Nose', 1) )
 
     # Glasses. God I hate you glasses.
     eyeglasses = cr('Eyeglasses', 1)

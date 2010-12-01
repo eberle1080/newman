@@ -27,7 +27,9 @@ def batch(batchFile, vocabulary, grammar, generator):
         print '-'*80
         print searchString.center(80)
         print '-'* 80
-        search(searchString, vocabulary, grammar, generator)
+        if search(searchString, vocabulary, grammar, generator) != 0:
+            sys.exit(1)
+        print ''
 
 def usage():
     """

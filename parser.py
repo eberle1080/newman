@@ -153,8 +153,6 @@ def rparse(tree, classifiers, negate, depth = 0):
     for tr in tree:
         if isinstance(tr, nltk.Tree):
             name = str(tr.node)
-
-            debug('.'*depth + name + " (negate = " + str(myneg) + ")")
             val = rparse(tr, classifiers, myneg, depth + 1)
 
             if val == True:
@@ -164,28 +162,23 @@ def rparse(tree, classifiers, negate, depth = 0):
             name = str(tree.node)
             if name.startswith('PROD_'):
                 # Cheap dirty hack so that I know it's a real classifier
-                debug('.'*depth + "Production symbol: " + name + " (negate = " + str(myneg) + ")")
                 classifiers.add(name, myneg)
                 classifiers.addtext(tr)
 
             elif name in ('NOT', 'NON', 'NEITHER'):
-                debug('.'*depth + 'NEGATE')
                 classifiers.addtext(tr)
                 myneg = not negate
                 rv = True
 
             elif name == 'NOR':
-                debug('.'*depth + 'NEGATE')
                 classifiers.addtext(tr)
                 myneg = not negate
                 rv = True
 
             elif name == 'OR':
-                debug('.'*depth + 'OR')
                 classifiers.next()
 
             else:
-                debug('.'*depth + str(tr)+ " (negate = " + str(myneg) + ")")
                 classifiers.addtext(tr)
 
     return rv
@@ -211,7 +204,6 @@ def parse(wordlist, grammar, generator):
         classifiers = ClassifierCollection(generator)
         ct = 0
         for tree in trees:
-            print tree
             rparse(tree, classifiers, False)
             ct += 1
             break
