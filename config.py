@@ -34,6 +34,7 @@ def add_word(vocab, word, production_rule, keys = None, aliases = None):
 
     synsets = []
     if keys != None:
+        # Create a list of synsets for this word, if any lemmas were provided.
         if isinstance(keys, (list, tuple)):
             for k in keys:
                 k = k.strip()
@@ -52,11 +53,14 @@ def add_word(vocab, word, production_rule, keys = None, aliases = None):
     alias_list = []
 
     try:
+        # Make sure that the word itself is in its own alias list,
+        # assuming it's a valid regular expression.
         re.compile(word)
         alias_list.append(word)
     except:
         pass
 
+    # Create a list of aliases if applicable
     if aliases != None:
         if isinstance(aliases, (list, tuple)):
             for a in aliases:
@@ -68,6 +72,7 @@ def add_word(vocab, word, production_rule, keys = None, aliases = None):
             if len(a) > 0 and a not in alias_list:
                 alias_list.append(a)
 
+    # Finally create a BaseWord object based on all of this stuff
     baseword = BaseWord(word, production_rule, synsets, aliases)
     vocab.append(baseword)
 

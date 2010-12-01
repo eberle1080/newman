@@ -228,16 +228,36 @@ class Word(object):
         self._reduced = candidates[0][1].word
 
     def __str__(self):
+        """
+        Get a nice string representation for this word object
+        """
+
         return 'Word( "' + self._original + '" -> "' + self._normalized + '" -> "' + self._reduced + '" )'
 
     def original(self):
+        """
+        Get the original input string (i.e. "Dude ")
+        """
+
         return self._original
 
     def normalized(self):
+        """
+        Get the normalized version of the word (i.e. "dude")
+        """
+
         return self._normalized
 
     def reduced(self):
+        """
+        Get the reduced form of the word (i.e. "male")
+        """
+
         return self._reduced
 
     def definitions(self):
+        """
+        Get a list of possible definitions for this word
+        """
+
         return self._definitions

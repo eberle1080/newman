@@ -12,7 +12,17 @@ class ParserException(Exception):
         return "Parse error: " + self.reason
 
 class ClassifierCollection(object):
+    """
+    Basically a big stack to collect the production symbols. Once all
+    symbols have been collected they are methodically run through the
+    classifier generator to get a list of classifier->value pairs.
+    """
+
     def __init__(self, generator):
+        """
+        Create a new one of these things
+        """
+
         self._classifiers = []
         self._classifiers.append([])
         self._final = []
@@ -22,12 +32,26 @@ class ClassifierCollection(object):
         self._generator = generator
     
     def addtext(self, text):
+        """
+        Add some text. Useful for error reporting.
+        """
+
         self._text.append(text)
 
     def add(self, classifier, negate):
+        """
+        A production symbol has been encountered by the parser, add it
+        to the current stack.
+        """
+
         self._classifiers[self._pos].append((classifier, negate))
 
     def next(self):
+        """
+        An "OR" has been encountered, switch over to a new stack. Throw up if
+        the current stack is empty.
+        """
+
         if len(self._classifiers[self._pos]) == 0:
             raise ParserException('No classifiers found for text segment: "' + ' '.join(self._text) + '"')
         self._classifiers.append([])
@@ -36,6 +60,12 @@ class ClassifierCollection(object):
         self._text = []
 
     def finish(self):
+        """
+        We're all done parsing, let's transform our stack o' symbols into a collection of
+        classifier->value pairs. We let the generator do the magic, we just feed it the
+        symbols.
+        """
+
         if len(self._text) > 0 and len(self._classifiers[self._pos]) == 0:
             raise ParserException('No classifiers found for text segment: "' + ' '.join(self._text) + '"')
         elif len(self._classifiers[self._pos]) > 0:
@@ -48,9 +78,19 @@ class ClassifierCollection(object):
         self._convert_all()
 
     def valid_count(self):
+        """
+        Get the number of valid search phrases encountered. Basically search phrases
+        are seperated by "OR"
+        """
         return self._valid
 
     def pprint(self):
+        """
+        Pretty print the final classifier->value pairs
+
+        ('Classifier' => Yes, 'Classifier' => No) | ('Classifier' => Yes)
+        """
+
         classifiers = []
         for n in xrange(len(self._final)):
             values = []
@@ -64,6 +104,34 @@ class ClassifierCollection(object):
         print '(' + ') | ('.join(classifiers) + ')'
 
     def _gauntlet(self, cls, desperate):
+        """
+        Hard to describe, easy to give an example:
+
+        We have the symbols:
+           ATTRACTIVE (negate = False)
+           ASIAN (negate = True)
+           WOMAN (negate = False)
+
+        This code will try each of the following until it gets an answer
+        (and yes, order matters)
+
+        ((ATTRACTIVE, False), (ASIAN, True), (WOMAN, False)) [None]
+        ((ATTRACTIVE, False), (ASIAN, True))                 [None]
+        ((ASIAN, True), (WOMAN, False))                      [None]
+        ((ATTRACTIVE, False))                                [None]
+        ((ASIAN, True))                                      [('Asian', -1.0)]
+
+        Then we pop ASIAN off, and run the whoe thing again from the start
+        ((ATTRACTIVE, False), (WOMAN, False))                [('Attractive Woman'), 1.0]
+
+        Again we pop, and now we're done.
+
+        If no answer can be given, it will flip the deperate flag to True
+        and try again. If that fails, then clearly the program wasn't
+        configured to handle that (or those) production symbol(s).
+
+        """
+
         import config
 
         size = len(cls)
@@ -86,6 +154,9 @@ class ClassifierCollection(object):
         return None
 
     def _convert(self, n):
+        """
+        Convert a list of production symbols to the classifier->value pairs
+        """
         arr = self._final[n]
         cls = self._classifiers[n]
 
@@ -107,6 +178,10 @@ class ClassifierCollection(object):
                     arr.append(r)
 
     def _convert_all(self):
+        """
+        Go through each stack and conver them to classifier->value pairs
+        """
+
         self._final = []
         if self._valid <= 0:
             return
@@ -117,6 +192,8 @@ class ClassifierCollection(object):
         classifiers = []
         for n in xrange(self._valid):
             fc = self._final[n]
+
+            # We take care of dupes here by averaging the classifiers
 
             mv = {}
             counter = {}
@@ -144,6 +221,11 @@ class ClassifierCollection(object):
         self._final = classifiers
 
 def rparse(tree, classifiers, negate, depth = 0):
+    """
+    Walk over a parse tree, and find (1) production symbols, and (2)
+    negation symbols. Negation symbols propogate to child nodes.
+    """
+
     import nltk, config
 
     myneg = negate
@@ -185,7 +267,11 @@ def rparse(tree, classifiers, negate, depth = 0):
 
 def parse(wordlist, grammar, generator):
     """
-    Parse this thang
+    Parse this thang. Call off to nltk's chart parser (which is
+    the only one fast enough to parse the massive grammar). Only
+    use the top best tree. If no parse tree is found, the program
+    dies. The pass along the tree for actual symantic analysis,
+    and then print out the parse and we're done!
     """
 
     import nltk
@@ -194,11 +280,7 @@ def parse(wordlist, grammar, generator):
         gr = nltk.parse_cfg(grammar)
         parts = [w.reduced() for w in wordlist]
 
-        #if debugging:
-        #parser = nltk.BottomUpChartParser(gr, trace = 2)
-        #else:
         parser = nltk.BottomUpChartParser(gr)
-
         trees = parser.nbest_parse(parts)
 
         classifiers = ClassifierCollection(generator)

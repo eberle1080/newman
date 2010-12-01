@@ -7,7 +7,7 @@ from debug import *
 
 def batch(batchFile, vocabulary, grammar, generator):
     """
-    Run a batch search
+    Run a batch search, exit on the first error.
     """
 
     searches = []

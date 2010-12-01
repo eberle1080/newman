@@ -1,4 +1,5 @@
 # Author: Chris Eberle <eberle1080@gmail.com>
+# You don't even want to know how many dragons be here. Like, 8.
 
 from debug import *
 
@@ -21,28 +22,59 @@ class UnsupportedSearch(Exception):
         return str(self.desc)
 
 class ClassifierResult(object):
+    """
+    A classifier name and value pair
+    (i.e. Male => 1)
+    """
+
     def __init__(self, name, value):
         self._name = name
         self._value = value
 
     def name(self):
+        """
+        The final classifier name
+        """
         return self._name
 
     def value(self):
+        """
+        The final classifer value
+        """
         return self._value
 
 class ProductionSymbol(object):
+    """
+    Used to identify a production symbol coupled
+    with a particular negation value. E.g.
+
+    "not male" would be:
+        ps = ProductionSymbol('PROD_MALE', True)
+    """
+
     def __init__(self, name, negate):
+        """
+        Create a new ProductionSymbol object
+        """
         self._name = name.strip().upper()
         self._negate = True if negate else False
 
     def name(self):
+        """
+        Get the production name
+        """
         return self._name
 
     def negate(self):
+        """
+        Is this production being negated?
+        """
         return self._negate
 
     def negname(self):
+        """
+        Used for generating hashes. Don't worry about it.
+        """
         return "1" if self._negate else "0"
 
 class ClassifierGenerator(object):
@@ -116,10 +148,13 @@ class ClassifierGenerator(object):
             raise ClassifierGeneratorException('duplicate mapping: ' + key)
 
         if callable(classifiers):
+            # It's a lambda expression or something, just add it with no further processing
             self._mapping[key] = classifiers
         elif isinstance(classifiers, UnsupportedSearch):
+            # This particular combination is not allowed. So noted.
             self._mapping[key] = classifiers
         else:
+            # We've got a list of classifiers. Put them into a list.
             tmp = []
             if isinstance(classifiers, (list, tuple)):
                 for cls in classifiers:
@@ -135,7 +170,9 @@ class ClassifierGenerator(object):
 
     def get_mapping(self, symbols, desperate):
         """
-        Get a mapping for a given set of symbols
+        Get a mapping for a given set of symbols. Returns None if there is
+        no valid mapping (which may change depending on the value of desperate)
+        OR returns a list of ClassifierResult objects.
         """
 
         key = self._get_key(symbols)
@@ -143,18 +180,27 @@ class ClassifierGenerator(object):
             return None
 
         if callable(self._mapping[key]):
+            # Let the function decide what to do
             syms = self._symbols_to_list(symbols)
             classifiers = self._mapping[key](syms, desperate)
+
+            # It returned an UnsupportedSearch exception... run away!
             if classifiers is not None and isinstance(classifiers, UnsupportedSearch):
                 raise classifiers
+
         elif isinstance(self._mapping[key], UnsupportedSearch):
+            # We were told not to allow this combination. Now suffer my wrath.
             raise self._mapping[key]
+
         elif isinstance(self._mapping[key], (list, tuple)):
+            # We've got a list of classifiers to return
             classifiers = [m for m in self._mapping[key]]
 
+        # None just means no mapping found
         if classifiers is None:
             return None
 
+        # OK, we've got something to return. Wrap it up all nice and purdy.
         if isinstance(classifiers, (list, tuple)):
             tmp = [cls for cls in classifiers
                    if cls is not None and
