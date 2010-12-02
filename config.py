@@ -216,7 +216,7 @@ def configure():
     add_word(vocab, 'wavy',     'PROD_WAVY')
     add_word(vocab, 'bald',     'PROD_BALD', ('bald%5:00:00:hairless:00', 'hairless%3:00:00::'))
     add_word(vocab, 'balding',  'PROD_BALDING', None, ('receding hairline', 'hairline receding'))
-    add_word(vocab, 'hair',     'PROD_HAIR')
+    add_word(vocab, 'hair',     'PROD_HAIR', None, 'haired')
 
     # Age
     add_rule(gramm, 'AGE -> PROD_OLD')
@@ -246,7 +246,7 @@ def configure():
     add_word(vocab, 'smiling',     'PROD_SMILING',  ('smiling%1:10:00::', 'smile%2:29:00::', 'smile%2:32:00::'), None)
     add_word(vocab, 'frowning',    'PROD_FROWNING', ('frowning%5:00:00:displeased:00', 'frown%1:10:00::', 'frown%2:29:00::'), None)
     add_word(vocab, 'double-chin', 'PROD_DOUBLECHIN', None, ('double chin', 'two chins', 'a chin count of two', 'chins of two', 'two-chinned'))
-    add_word(vocab, 'chubby',      'PROD_CHUBBY')
+    add_word(vocab, 'chubby',      'PROD_CHUBBY', None, ('husky', 'big[ -]boned'))
     add_word(vocab, 'skinny',      'PROD_NOT_CHUBBY')
     add_word(vocab, 'angry',       'PROD_ANGRY', 'angry%3:00:00::', ('upset', 'pissed off'))
     add_word(vocab, 'high',        'PROD_HIGH', ('high%3:00:01::', 'high%3:00:02::'))
@@ -314,6 +314,10 @@ def configure():
     gen.add_mapping( (ps('PROD_BLACK', False), ps('PROD_HAIR', False)), cr('Black Hair', 1) )
     gen.add_mapping( (ps('PROD_BLACK', True),  ps('PROD_HAIR', True)),  cr('Black Hair', -1) )
     gen.add_mapping( (ps('PROD_BLACK', True),  ps('PROD_HAIR', False)), cr('Black Hair', -1) )
+
+    # Hair problems
+    simple_map(gen, 'PROD_BALD', 'Bald')
+    gen.add_mapping( ps('PROD_HAIR', True), lambda s,d: cr('Bald', -1 if s[0].negate() else 1) if d else None )
 
     # Facial features
     gen.add_mapping( (ps('PROD_BIG', False), ps('PROD_NOSE', False)), cr('Big Nose', 1) )
