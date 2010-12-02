@@ -204,10 +204,10 @@ def configure():
 
     # Race
     add_rule(gramm, 'RACE -> PROD_ASIAN | PROD_INDIAN | PROD_WHITE | PROD_BLACK')
-    add_word(vocab, 'black',  'PROD_BLACK',  ('black%1:18:00::'))                        # Insert slurs here
-    add_word(vocab, 'asian',  'PROD_ASIAN',  ('asian%1:18:00::', 'asia%1:14:00::'))      # Or here
-    add_word(vocab, 'white',  'PROD_WHITE',  ('white%1:18:00::'))                        # Or here
-    add_word(vocab, 'indian', 'PROD_INDIAN', ('indian%1:18:01::', 'india%1:15:00::'))    # Or here
+    add_word(vocab, 'black',  'PROD_BLACK',  ('black%1:18:00::'))                             # Insert slurs here
+    add_word(vocab, 'asian',  'PROD_ASIAN',  ('asian%1:18:00::', 'asia%1:14:00::'), 'asians') # Or here
+    add_word(vocab, 'white',  'PROD_WHITE',  ('white%1:18:00::'))                             # Or here
+    add_word(vocab, 'indian', 'PROD_INDIAN', ('indian%1:18:01::', 'india%1:15:00::'))         # Or here
 
     # Hair
     add_rule(gramm, 'HAIR -> PROD_CURLY | PROD_STRAIGHT | PROD_WAVY | PROD_HAIR | PROD_BALDING | PROD_BALD')
