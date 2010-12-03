@@ -172,7 +172,7 @@ def configure():
     add_word(vocab, 'a',       'DET',        None,      ('an', 'one', 'this', 'that', 'some', 'the', 'these', 'those', 'his',
                                                            'her', 'its', 'their'))
     add_word(vocab, 'of',      'PREP',       None,      ('in', 'on', 'from'))
-    add_word(vocab, 'is',      'DVERB',      None,      ('is', 'was', 'be', 'been', 'being', 'are'))
+    add_word(vocab, 'is',      'DVERB',      None,      ('is', 'was', 'be', 'been', 'being', 'are', "'s"))
     add_word(vocab, 'very',    'ADV',        None,      ('really', 'quite', 'understandably', 'noticibly', 'obviously',
                                                         'irritatingly', 'overtly', 'exactly', 'mostly', 'entirely', 'too'))
     add_word(vocab, 'pair',    'PAIR',       None,      ('set'))
