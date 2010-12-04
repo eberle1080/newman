@@ -1,0 +1,35 @@
+NEWMAN:
+Natural English With Mutating Abridged Nouns
+Written for CS-572 at UCCS (Computational Linguistics)
+By Chris Eberle <eberle1080@gmail.com>
+
+Goal:
+
+Translate natural english queries into a set of predefined
+classifier switches. For example, "A man outside with glasses"
+would be transformed into "Male => Yes, Outside => Yes,
+Eyeglasses => Yes", assuming that "Male", "Outside", and
+"Sunglasses" were defined as valid classifiers.
+
+A richer vocabulary is supported with the help of WordNet
+which takes unknown words and maps them to known similar
+words. The translated sentence is then input into a CFG
+which produces output symbols (MALE, OUTSIDE, GLASSES).
+These are then used to output the final classifier names
+and values.
+
+Prerequisites:
+
+* Python 2.6
+* NLTK 2.0
+
+Configuring:
+
+NEWMAN can be extended to support any vocabulary, grammar, and
+output. You need to change config.py. There are a lot of
+comments in there already, go have a peek.
+
+Running:
+
+$> python newman.py -s "grinning chinese dude"
+(Asian => Yes, Male => Yes, Smiling => Yes)

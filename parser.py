@@ -1,4 +1,18 @@
-# Author: Chris Eberle <eberle1080@gmail.com>
+# NEWMAN: Natural English With Mutating Abridged Nouns
+#
+# Copyright 2010 Chris Eberle <eberle1080@gmail.com>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from generator import *
 
@@ -122,7 +136,7 @@ class ClassifierCollection(object):
         ((ASIAN, True))                                      [('Asian', -1.0)]
 
         Then we pop ASIAN off, and run the whoe thing again from the start
-        ((ATTRACTIVE, False), (WOMAN, False))                [('Attractive Woman'), 1.0]
+        ((ATTRACTIVE, False), (WOMAN, False))                [('Attractive Woman', 1.0)]
 
         Again we pop, and now we're done.
 
